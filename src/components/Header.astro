@@ -1,0 +1,42 @@
+---
+import { site } from "../site.config";
+---
+
+<header class="sticky top-0 z-40 border-b border-brand-burgundy/10 bg-brand-blush/85 shadow-sm backdrop-blur-md">
+  <div
+    class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5"
+  >
+    <div class="flex items-center justify-center gap-3 sm:justify-start">
+      <span
+        class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-brand-burgundy shadow-soft ring-1 ring-brand-burgundy/10"
+        aria-hidden="true"
+      >
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+          />
+        </svg>
+      </span>
+      <div class="text-center sm:text-left">
+        <h1 class="font-display text-xl font-semibold tracking-tight text-brand-burgundy sm:text-2xl">
+          {site.name}
+        </h1>
+        <p class="text-xs text-brand-ink/70 sm:text-sm">Catálogo online</p>
+      </div>
+    </div>
+    <p
+      class="max-w-md text-center text-sm leading-relaxed text-brand-ink/80 sm:max-w-sm sm:text-right"
+    >
+      Toque em <strong class="font-semibold text-brand-burgundy">Comprar no WhatsApp</strong> no
+      produto — enviamos a mensagem já preenchida.
+    </p>
+  </div>
+</header>

@@ -1,0 +1,200 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+import Header from "../components/Header.astro";
+import Hero from "../components/Hero.astro";
+import ProductCard from "../components/ProductCard.astro";
+import FloatingWhatsApp from "../components/FloatingWhatsApp.astro";
+import productsData from "../data/products.json";
+import { site } from "../site.config";
+
+const title = `${site.name} — Catálogo`;
+const canonical = site.canonicalUrl.replace(/\/$/, "");
+const products = productsData.products;
+const kits = products.filter((p) => p.categoria === "kit");
+const catalogo = products.filter((p) => p.categoria !== "kit");
+const firstImg = products[0]?.imagem;
+const ogImage =
+  typeof firstImg === "string" && firstImg.startsWith("/")
+    ? `${canonical}${firstImg}`
+    : firstImg?.startsWith("http")
+      ? firstImg
+      : undefined;
+---
+
+<MainLayout title={title} description={site.description} ogImage={ogImage}>
+  <Header />
+  <div class="mx-auto max-w-6xl px-4 pb-6 pt-6 sm:px-6 sm:pb-8 sm:pt-8">
+    <Hero />
+  </div>
+
+  <main id="conteudo-principal" class="mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-6">
+    <div class="mb-10 flex flex-col items-center gap-3 text-center sm:mb-12">
+      <span
+        class="rounded-full bg-white px-4 py-1 text-xs font-semibold uppercase tracking-widest text-brand-burgundy shadow-soft ring-1 ring-brand-burgundy/10"
+      >
+        Catálogo
+      </span>
+      <h2
+        class="font-display text-3xl font-semibold text-brand-burgundy sm:text-4xl"
+      >
+        Peças disponíveis
+      </h2>
+      <p class="max-w-2xl text-sm text-brand-ink/75 sm:text-base">
+        {products.length} referências com fotos reais. Valores em <strong
+          class="font-medium text-brand-burgundy">Kz</strong
+        > conforme os cartazes da loja.
+      </p>
+      <nav
+        aria-label="Filtro do catálogo"
+        class="mt-3 flex flex-wrap items-center justify-center gap-2"
+      >
+        <button
+          type="button"
+          data-filter-btn="todos"
+          aria-pressed="true"
+          class="inline-flex items-center rounded-full bg-brand-burgundy px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-soft transition hover:bg-brand-burgundy/90"
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          data-filter-btn="kit"
+          aria-pressed="false"
+          class="inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand-burgundy ring-1 ring-brand-burgundy/20 transition hover:bg-brand-blush"
+        >
+          Kits
+        </button>
+        <button
+          type="button"
+          data-filter-btn="normal"
+          aria-pressed="false"
+          class="inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand-burgundy ring-1 ring-brand-burgundy/20 transition hover:bg-brand-blush"
+        >
+          Normal
+        </button>
+      </nav>
+    </div>
+
+    <section data-section="kit" class="mb-14 transition-all duration-300" aria-labelledby="kits-heading">
+      <div class="mb-6 flex items-end justify-between gap-3">
+        <h3 id="kits-heading" class="font-display text-2xl font-semibold text-brand-burgundy sm:text-3xl">
+          Kits
+        </h3>
+        <p class="text-xs text-brand-ink/70 sm:text-sm">{kits.length} kits</p>
+      </div>
+      <ul
+        class="grid list-none gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
+        role="list"
+      >
+        {
+          kits.map((p) => (
+            <li>
+              <ProductCard product={p} />
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section data-section="normal" class="transition-all duration-300" aria-labelledby="catalogo-heading">
+      <div class="mb-6 flex items-end justify-between gap-3">
+        <h3 id="catalogo-heading" class="font-display text-2xl font-semibold text-brand-burgundy sm:text-3xl">
+          Produtos individuais e toucas
+        </h3>
+        <p class="text-xs text-brand-ink/70 sm:text-sm">{catalogo.length} itens</p>
+      </div>
+    <ul
+      class="grid list-none gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
+      role="list"
+    >
+      {
+        catalogo.map((p) => (
+          <li>
+            <ProductCard product={p} />
+          </li>
+        ))
+      }
+    </ul>
+    </section>
+  </main>
+
+  <footer
+    class="border-t border-brand-burgundy/10 bg-white/70 py-10 backdrop-blur-sm"
+  >
+    <div
+      class="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 text-center sm:px-6"
+    >
+      <p class="font-display text-lg font-semibold text-brand-burgundy">
+        {site.name}
+      </p>
+      <p class="max-w-md text-sm text-brand-ink/70">
+        Obrigada por visitar o nosso catálogo. Dúvidas, trocas ou encomendas personalizadas — fale connosco no WhatsApp.
+      </p>
+      <p class="text-xs text-brand-ink/50">
+        © {new Date().getFullYear()}
+        {site.name}. Todos os direitos reservados.
+      </p>
+    </div>
+  </footer>
+
+  <FloatingWhatsApp />
+
+  <script>
+    const buttons = Array.from(document.querySelectorAll("[data-filter-btn]"));
+    const sectionKit = document.querySelector('[data-section="kit"]');
+    const sectionNormal = document.querySelector('[data-section="normal"]');
+
+    function setButtonState(active) {
+      buttons.forEach((btn) => {
+        const isActive = btn.dataset.filterBtn === active;
+        btn.setAttribute("aria-pressed", String(isActive));
+        btn.classList.toggle("bg-brand-burgundy", isActive);
+        btn.classList.toggle("text-white", isActive);
+        btn.classList.toggle("shadow-soft", isActive);
+        btn.classList.toggle("bg-white", !isActive);
+        btn.classList.toggle("text-brand-burgundy", !isActive);
+        btn.classList.toggle("ring-1", !isActive);
+        btn.classList.toggle("ring-brand-burgundy/20", !isActive);
+      });
+    }
+
+    function showSection(section, show) {
+      if (!section) return;
+      if (show) {
+        section.classList.remove("hidden");
+        requestAnimationFrame(() => {
+          section.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
+          section.classList.add("opacity-100", "translate-y-0");
+        });
+      } else {
+        section.classList.remove("opacity-100", "translate-y-0");
+        section.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
+        window.setTimeout(() => {
+          section.classList.add("hidden");
+        }, 220);
+      }
+    }
+
+    function applyFilter(filter) {
+      setButtonState(filter);
+      if (filter === "kit") {
+        showSection(sectionKit, true);
+        showSection(sectionNormal, false);
+      } else if (filter === "normal") {
+        showSection(sectionKit, false);
+        showSection(sectionNormal, true);
+      } else {
+        showSection(sectionKit, true);
+        showSection(sectionNormal, true);
+      }
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applyFilter(btn.dataset.filterBtn || "todos");
+      });
+    });
+
+    applyFilter("todos");
+  </script>
+</MainLayout>

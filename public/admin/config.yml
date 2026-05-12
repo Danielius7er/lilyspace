@@ -1,0 +1,50 @@
+﻿local_backend: true
+
+backend:
+  name: git-gateway
+  branch: main
+
+publish_mode: editorial_workflow
+
+media_folder: public/images
+public_folder: /images
+
+site_url: https://exemplo.pt
+logo_url: /favicon.svg
+
+collections:
+  - name: loja
+    label: Produtos da Loja
+    files:
+      - name: products
+        label: Lista de Produtos
+        file: src/data/products.json
+        format: json
+        editor:
+          preview: false
+        fields:
+          - name: products
+            label: Produtos
+            widget: list
+            summary: "{{fields.nome}} — {{fields.preco}} ({{fields.status}})"
+            fields:
+              - { name: id, label: ID, widget: number, value_type: int, min: 1 }
+              - name: categoria
+                label: Categoria
+                widget: select
+                default: catalogo
+                options:
+                  - { label: Catálogo, value: catalogo }
+                  - { label: Kits, value: kit }
+              - { name: nome, label: Nome do produto, widget: string }
+              - { name: preco, label: Preço, widget: string, hint: "Ex.: 2.800,00 Kz" }
+              - { name: descricao, label: Descrição, widget: text }
+              - { name: imagem, label: Foto, widget: image }
+              - name: status
+                label: Estado
+                widget: select
+                default: disponivel
+                options:
+                  - { label: Disponível, value: disponivel }
+                  - { label: Esgotado, value: esgotado }
+              - { name: videoUrl, label: URL de vídeo (opcional), widget: string, required: false }

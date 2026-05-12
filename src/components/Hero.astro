@@ -1,0 +1,80 @@
+---
+import { site } from "../site.config";
+
+const heroImg = "/images/hero-colecao-lacos.jpeg";
+---
+
+<section
+  class="relative mx-auto max-w-6xl overflow-hidden rounded-3xl shadow-card ring-1 ring-brand-burgundy/10"
+  aria-labelledby="hero-heading"
+>
+  <div class="absolute inset-0">
+    <img
+      src={heroImg}
+      alt=""
+      width="1200"
+      height="900"
+      class="h-full w-full object-cover object-center"
+      loading="eager"
+      fetchpriority="high"
+    />
+    <div
+      class="absolute inset-0 bg-gradient-to-r from-brand-blush/95 via-brand-blush/80 to-brand-blush/20 sm:from-brand-blush/90 sm:via-white/50 sm:to-transparent"
+      aria-hidden="true"
+    />
+  </div>
+
+  <div class="relative grid gap-8 px-6 py-12 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] sm:items-center sm:px-10 sm:py-16 lg:py-20">
+    <div class="max-w-lg">
+      <p
+        class="text-xs font-semibold uppercase tracking-[0.25em] text-brand-burgundy/90"
+      >
+        Nova coleção
+      </p>
+      <h2
+        id="hero-heading"
+        class="mt-3 font-display text-4xl font-semibold leading-tight tracking-tight text-brand-burgundy sm:text-5xl lg:text-6xl"
+      >
+        Laços &amp; toucas
+        <span class="block text-3xl font-normal italic text-brand-rose sm:text-4xl lg:text-5xl"
+          >que marcam</span
+        >
+      </h2>
+      <p class="mt-5 max-w-md text-sm leading-relaxed text-brand-ink/85 sm:text-base">
+        {site.tagline}
+      </p>
+      <div
+        class="mt-8 flex flex-wrap items-center gap-3 border-t border-brand-burgundy/15 pt-6"
+      >
+        <span
+          class="inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-brand-burgundy shadow-sm ring-1 ring-brand-burgundy/10"
+        >
+          Preços no catálogo em Kz
+        </span>
+        <span
+          class="inline-flex items-center rounded-full bg-brand-burgundy/10 px-3 py-1 text-xs font-medium text-brand-burgundy"
+        >
+          Envio combinado no WhatsApp
+        </span>
+      </div>
+    </div>
+
+    <div
+      class="hidden sm:flex sm:justify-end"
+      aria-hidden="true"
+    >
+      <div
+        class="writing-vertical font-display text-7xl font-semibold leading-none text-brand-burgundy/15 lg:text-8xl"
+        style="writing-mode: vertical-rl; text-orientation: mixed;"
+      >
+        NOVA COLEÇÃO
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .writing-vertical {
+    letter-spacing: 0.02em;
+  }
+</style>

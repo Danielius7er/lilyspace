@@ -1,0 +1,63 @@
+---
+import { site } from "../site.config";
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const { title, description = site.description, ogImage } = Astro.props;
+
+const canonical = site.canonicalUrl.replace(/\/$/, "");
+const og =
+  ogImage && ogImage.startsWith("http")
+    ? ogImage
+    : ogImage
+      ? `${canonical}${ogImage.startsWith("/") ? "" : "/"}${ogImage}`
+      : `${canonical}/favicon.svg`;
+---
+
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#6b2d3c" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_PT" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={og} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={og} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title}</title>
+  </head>
+  <body
+    class="min-h-screen bg-brand-blush font-sans text-brand-ink antialiased selection:bg-brand-rose/30 selection:text-brand-burgundy"
+  >
+    <a
+      href="#conteudo-principal"
+      class="sr-only left-4 top-4 z-[100] rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand-burgundy shadow-lg ring-2 ring-brand-burgundy/20 focus:not-sr-only focus:absolute focus:outline-none"
+      >Saltar para o catálogo</a
+    >
+    <slot />
+  </body>
+</html>

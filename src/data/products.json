@@ -1,0 +1,204 @@
+{
+  "products": [
+  {
+    "id": 1,
+    "categoria": "catalogo",
+    "nome": "Conjunto — 3 pares de laços",
+    "preco": "2.800,00 Kz",
+    "descricao": "Laços em tecido, várias cores. Ideal para meninas e para quem gosta de combinar.",
+    "imagem": "/images/lacos-tres-pares-2800.jpeg"
+  },
+  {
+    "id": 2,
+    "categoria": "catalogo",
+    "nome": "Laço grande (unidade)",
+    "preco": "1.500,00 Kz",
+    "descricao": "Laço em tecido com acabamento cuidado. Peça individual.",
+    "imagem": "/images/laco-unitario-1500.jpeg"
+  },
+  {
+    "id": 3,
+    "categoria": "catalogo",
+    "nome": "Laço cetim / gorgurão (unidade)",
+    "preco": "1.750,00 Kz",
+    "descricao": "Brilho suave, cores nude, azul-acinzentado e castanho.",
+    "imagem": "/images/laco-saten-1750.jpeg"
+  },
+  {
+    "id": 4,
+    "categoria": "catalogo",
+    "nome": "Laço de cetim marfim (unidade)",
+    "preco": "1.750,00 Kz",
+    "descricao": "Tom marfim/off-white em cetim; grande e elegante.",
+    "imagem": "/images/laco-cetim-marfim-1750.jpeg"
+  },
+  {
+    "id": 5,
+    "categoria": "catalogo",
+    "nome": "Laço de tecido (unidade)",
+    "preco": "1.250,00 Kz",
+    "descricao": "Tons terrosos e pastel; ótimo para o dia a dia.",
+    "imagem": "/images/laco-tecido-1250.jpeg"
+  },
+  {
+    "id": 6,
+    "categoria": "catalogo",
+    "nome": "Touca de cetim — verde-esmeralda / preto",
+    "preco": "2.800,00 Kz",
+    "descricao": "Interior brilhante em cetim; combinação clássica.",
+    "imagem": "/images/touca-cetim-verde-preto-2800.jpeg"
+  },
+  {
+    "id": 7,
+    "categoria": "catalogo",
+    "nome": "Touca de cetim — castanha",
+    "preco": "2.800,00 Kz",
+    "descricao": "Tom chocolate com interior preto; acabamento acetinado.",
+    "imagem": "/images/touca-cetim-castanha-2800.jpeg"
+  },
+  {
+    "id": 8,
+    "categoria": "catalogo",
+    "nome": "Touca de cetim — vinho",
+    "preco": "2.800,00 Kz",
+    "descricao": "Tom vinho brilhante com interior preto; elegante e confortável.",
+    "imagem": "/images/touca-cetim-vinho-2800.jpeg"
+  },
+  {
+    "id": 9,
+    "categoria": "catalogo",
+    "nome": "Laço de cetim branco com pérolas",
+    "preco": "2.000,00 Kz",
+    "descricao": "Detalhe de pérolas no contorno e no nó; laço comprido.",
+    "imagem": "/images/laco-branco-perolas-2000.jpeg"
+  },
+  {
+    "id": 10,
+    "categoria": "catalogo",
+    "nome": "Laços — várias cores e tamanhos",
+    "preco": "A partir de 1.250,00 Kz",
+    "descricao": "Várias opções em stock. Diga no WhatsApp a cor ou o modelo que procura.",
+    "imagem": "/images/vitrine-lacos.jpeg"
+  },
+  {
+    "id": 101,
+    "categoria": "kit",
+    "nome": "Kit laços cetim azul",
+    "preco": "5.000,00 Kz",
+    "descricao": "Conjunto em azul acetinado com laços de tamanhos diferentes.",
+    "imagem": "/images/kit-azul-cetim-5000.jpeg"
+  },
+  {
+    "id": 102,
+    "categoria": "kit",
+    "nome": "Kit laço + scrunchie preto",
+    "preco": "2.250,00 Kz",
+    "descricao": "Kit preto clássico com laço e scrunchie a combinar.",
+    "imagem": "/images/kit-preto-cetim-2250.jpeg"
+  },
+  {
+    "id": 103,
+    "categoria": "kit",
+    "nome": "Kit laços bege e azul",
+    "preco": "2.850,00 Kz",
+    "descricao": "Duas cores em contraste suave para uso diário.",
+    "imagem": "/images/kit-bege-azul-2850.jpeg"
+  },
+  {
+    "id": 104,
+    "categoria": "kit",
+    "nome": "Kit xadrez vermelho",
+    "preco": "4.500,00 Kz",
+    "descricao": "Conjunto com peças lisas e xadrez em vermelho.",
+    "imagem": "/images/kit-natal-4500.jpeg"
+  },
+  {
+    "id": 105,
+    "categoria": "kit",
+    "nome": "Kit verde musgo",
+    "preco": "4.500,00 Kz",
+    "descricao": "Kit verde elegante com peças variadas e scrunchie.",
+    "imagem": "/images/kit-verde-4500.jpeg"
+  },
+  {
+    "id": 106,
+    "categoria": "kit",
+    "nome": "Kit verde cetim premium",
+    "preco": "5.500,00 Kz",
+    "descricao": "Acabamento acetinado com brilho e peças em vários formatos.",
+    "imagem": "/images/kit-verde-cetim-5500.jpeg"
+  },
+  {
+    "id": 107,
+    "categoria": "kit",
+    "nome": "Kit marfim completo",
+    "preco": "8.000,00 Kz",
+    "descricao": "Conjunto marfim com múltiplos laços para combinar.",
+    "imagem": "/images/kit-marfim-8000.jpeg"
+  },
+  {
+    "id": 108,
+    "categoria": "kit",
+    "nome": "Kit lilás completo",
+    "preco": "7.500,00 Kz",
+    "descricao": "Kit lilás com várias peças para diferentes penteados.",
+    "imagem": "/images/kit-lilas-7500.jpeg"
+  },
+  {
+    "id": 109,
+    "categoria": "kit",
+    "nome": "Kit fúcsia",
+    "preco": "5.000,00 Kz",
+    "descricao": "Conjunto fúcsia vibrante em tamanhos variados.",
+    "imagem": "/images/kit-fucsia-5000.jpeg"
+  },
+  {
+    "id": 110,
+    "categoria": "kit",
+    "nome": "Kit vinho",
+    "preco": "4.500,00 Kz",
+    "descricao": "Kit vinho com laços e scrunchie no mesmo tom.",
+    "imagem": "/images/kit-vinho-4500.jpeg"
+  },
+  {
+    "id": 111,
+    "categoria": "kit",
+    "nome": "Kit uva",
+    "preco": "6.500,00 Kz",
+    "descricao": "Conjunto na cor uva com peças grandes e pequenas.",
+    "imagem": "/images/kit-uva-6500.jpeg"
+  },
+  {
+    "id": 112,
+    "categoria": "kit",
+    "nome": "Kit castanho completo",
+    "preco": "6.500,00 Kz",
+    "descricao": "Kit castanho com maior variedade de modelos.",
+    "imagem": "/images/kit-castanho-6500.jpeg"
+  },
+  {
+    "id": 113,
+    "categoria": "kit",
+    "nome": "Kit castanho clássico",
+    "preco": "5.000,00 Kz",
+    "descricao": "Conjunto castanho com peças essenciais para o dia a dia.",
+    "imagem": "/images/kit-castanho-5000.jpeg"
+  },
+  {
+    "id": 114,
+    "categoria": "kit",
+    "nome": "Kit rosa claro",
+    "preco": "4.500,00 Kz",
+    "descricao": "Kit rosa suave com tamanhos variados de laços.",
+    "imagem": "/images/kit-rosa-claro-4500.jpeg"
+  },
+  {
+    "id": 115,
+    "categoria": "kit",
+    "nome": "Kit bege",
+    "preco": "5.000,00 Kz",
+    "descricao": "Conjunto bege neutro para combinar com vários looks.",
+    "imagem": "/images/kit-bege-5000.jpeg"
+  }
+  ]
+}

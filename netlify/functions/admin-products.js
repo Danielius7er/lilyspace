@@ -4,10 +4,13 @@ import crypto from 'node:crypto';
 
 const DATA_FILE = path.join(process.cwd(), 'src', 'data', 'products.json');
 
-function json(res, status, payload) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(payload));
+// ✅ Corrigido: retorna objeto, não usa res
+function json(status, payload) {
+  return {
+    statusCode: status,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  };
 }
 
 async function readProducts() {
@@ -17,25 +20,19 @@ async function readProducts() {
 }
 
 async function writeProducts(products) {
-  const data = { products };
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  await fs.writeFile(DATA_FILE, JSON.stringify({ products }, null, 2), 'utf8');
 }
 
 function getAdminPassword() {
-  // Configure no Netlify: ADMIN_PANEL_PASSWORD
-  // Ajuste para evitar erros comuns de cópia/colar (espaços no fim/início)
   return (process.env.ADMIN_PANEL_PASSWORD || '').trim();
 }
 
-
 function getTokenSecret() {
-  // Opcional; configure no Netlify: ADMIN_PANEL_TOKEN_SECRET
   return process.env.ADMIN_PANEL_TOKEN_SECRET || 'dev-secret';
 }
 
 function tokenForPassword(password) {
-  const secret = getTokenSecret();
-  return crypto.createHmac('sha256', secret).update(password).digest('hex');
+  return crypto.createHmac('sha256', getTokenSecret()).update(password).digest('hex');
 }
 
 export async function handler(event, context) {
@@ -49,53 +46,53 @@ export async function handler(event, context) {
 
     const adminPassword = getAdminPassword();
     if (!adminPassword) {
-      return json(context.res, 500, { ok: false, error: 'ADMIN_PANEL_PASSWORD não configurado no Netlify.' });
+      // ✅ Sem context.res
+      return json(500, { ok: false, error: 'ADMIN_PANEL_PASSWORD não configurado no Netlify.' });
     }
 
     if (action === 'login') {
       if (!password || password !== adminPassword) {
-        return json(context.res, 401, { ok: false, error: 'Senha inválida.' });
+        return json(401, { ok: false, error: 'Senha inválida.' });
       }
-      const token = tokenForPassword(password);
-      return json(context.res, 200, { ok: true, token });
+      const generatedToken = tokenForPassword(password); // ✅ sem shadowing
+      return json(200, { ok: true, token: generatedToken });
     }
 
-    // actions below require auth
+    // Ações autenticadas
     const expected = tokenForPassword(adminPassword);
     if (!token || token !== expected) {
-      return json(context.res, 401, { ok: false, error: 'Não autenticado.' });
+      return json(401, { ok: false, error: 'Não autenticado.' });
     }
 
     if (action === 'list') {
       const products = await readProducts();
-      return json(context.res, 200, { ok: true, products });
+      return json(200, { ok: true, products });
     }
 
     if (action === 'save') {
-      const payload = body;
       const required = ['id', 'categoria', 'nome', 'preco', 'descricao', 'imagem', 'status'];
       for (const k of required) {
-        if (payload[k] === undefined || payload[k] === null || payload[k] === '') {
-          return json(context.res, 400, { ok: false, error: `Campo obrigatório ausente: ${k}` });
+        if (body[k] === undefined || body[k] === null || body[k] === '') {
+          return json(400, { ok: false, error: `Campo obrigatório ausente: ${k}` });
         }
       }
 
       const products = await readProducts();
-      const id = Number(payload.id);
+      const id = Number(body.id);
       if (!Number.isFinite(id) || id < 1) {
-        return json(context.res, 400, { ok: false, error: 'ID inválido.' });
+        return json(400, { ok: false, error: 'ID inválido.' });
       }
 
       const normalized = {
         id,
-        categoria: payload.categoria,
-        nome: String(payload.nome),
-        preco: String(payload.preco),
-        descricao: String(payload.descricao),
-        imagem: String(payload.imagem),
-        status: payload.status,
+        categoria: body.categoria,
+        nome: String(body.nome),
+        preco: String(body.preco),
+        descricao: String(body.descricao),
+        imagem: String(body.imagem),
+        status: body.status,
       };
-      if (payload.videoUrl) normalized.videoUrl = String(payload.videoUrl);
+      if (body.videoUrl) normalized.videoUrl = String(body.videoUrl);
 
       const idx = products.findIndex(p => Number(p.id) === id);
       if (idx >= 0) {
@@ -105,12 +102,12 @@ export async function handler(event, context) {
       }
 
       await writeProducts(products);
-      return json(context.res, 200, { ok: true });
+      return json(200, { ok: true });
     }
 
-    return json(context.res, 400, { ok: false, error: 'Ação inválida.' });
+    return json(400, { ok: false, error: 'Ação inválida.' });
+
   } catch (e) {
-    return json(context.res, 500, { ok: false, error: e?.message || 'Erro interno.' });
+    return json(500, { ok: false, error: e?.message || 'Erro interno.' });
   }
 }
-

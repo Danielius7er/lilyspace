@@ -23,8 +23,10 @@ async function writeProducts(products) {
 
 function getAdminPassword() {
   // Configure no Netlify: ADMIN_PANEL_PASSWORD
-  return process.env.ADMIN_PANEL_PASSWORD || '';
+  // Ajuste para evitar erros comuns de cópia/colar (espaços no fim/início)
+  return (process.env.ADMIN_PANEL_PASSWORD || '').trim();
 }
+
 
 function getTokenSecret() {
   // Opcional; configure no Netlify: ADMIN_PANEL_TOKEN_SECRET

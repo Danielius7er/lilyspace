@@ -3,13 +3,256 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Painel da Loja</title>
+    <title>Painel da Loja (Admin)</title>
     <meta name="robots" content="noindex,nofollow" />
     <style>
-      body { margin: 0; }
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; background: #fff; }
+      label { display:block; font-weight: 600; margin: 12px 0 6px; }
+      input, select, textarea { width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 10px; }
+      textarea { min-height: 90px; }
+      button { margin-top: 14px; padding: 10px 14px; border-radius: 10px; border: 0; cursor: pointer; background: #7f1d1d; color: #fff; }
+      .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+      .muted { color:#6b7280; font-size: 13px; }
+      .ok { background:#ecfdf5; border:1px solid #bbf7d0; color:#166534; padding:10px; border-radius: 10px; margin-top: 12px; }
+      .err { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px; border-radius: 10px; margin-top: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+      th { text-align:left; font-size: 12px; color:#6b7280; text-transform: uppercase; }
+      .actions { display:flex; gap: 10px; align-items:center; }
+      .ghost { background: transparent; border: 1px solid #e5e7eb; color:#111827; }
+      .small { font-size: 13px; }
     </style>
   </head>
   <body>
-    <script src="https://unpkg.com/decap-cms@^3.5.0/dist/decap-cms.js"></script>
+    <div class="wrap">
+      <div id="app"></div>
+    </div>
+
+    <script type="module">
+      const ADMIN_TOKEN_KEY = 'admin_token';
+
+      const API_BASE = '';
+      const endpoint = `${API_BASE}/.netlify/functions/admin-products`;
+
+      const app = document.getElementById('app');
+
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '<')
+          .replaceAll('>', '>')
+          .replaceAll('"', '"')
+          .replaceAll("'", '&#39;');
+      }
+
+      function renderLogin() {
+        app.innerHTML = `
+          <div class="card">
+            <h2 style="margin:0 0 6px;">Acesso ao Painel</h2>
+            <div class="muted">Use a senha para editar os produtos (ex.: preços, descrição, imagens, estado).</div>
+            <label>Senha do painel</label>
+            <input id="pw" type="password" placeholder="••••••" />
+            <button id="btn">Entrar</button>
+            <div id="msg" class="muted" style="margin-top:10px"></div>
+          </div>
+        `;
+        const btn = document.getElementById('btn');
+        const pw = document.getElementById('pw');
+        const msg = document.getElementById('msg');
+
+        btn.addEventListener('click', async () => {
+          msg.textContent = 'A validar...';
+          const password = pw.value;
+          const res = await fetch(endpoint + '?action=login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data?.ok) {
+            msg.textContent = data?.error || 'Senha inválida.';
+            return;
+          }
+          localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+          await renderAdmin();
+        });
+      }
+
+      async function authedFetch(action, payload) {
+        const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+        const res = await fetch(endpoint + '?action=' + encodeURIComponent(action), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, ...(payload || {}) })
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, data };
+      }
+
+      async function renderAdmin() {
+        const authToken = localStorage.getItem(ADMIN_TOKEN_KEY);
+        if (!authToken) return renderLogin();
+
+        const auth = await authedFetch('list');
+        if (!auth.ok) {
+          localStorage.removeItem(ADMIN_TOKEN_KEY);
+          return renderLogin();
+        }
+
+        const products = auth.data?.products || [];
+
+        app.innerHTML = `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="actions">
+              <h2 style="margin:0;">Editar Produtos</h2>
+              <button class="ghost" id="logout" type="button">Sair</button>
+            </div>
+            <div class="muted" style="margin-top:6px;">Atualiza ${escapeHtml(products.length)} produtos. As mudanças ficam no arquivo de dados e recompõem o site no deploy.</div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-top:0">Produtos</h3>
+            <div class="muted small" style="margin-bottom:10px;">Edite o formulário abaixo e clique em “Salvar”.</div>
+
+            <div class="row">
+              <div>
+                <label>ID (número)</label>
+                <input id="f_id" type="number" min="1" />
+              </div>
+              <div>
+                <label>Categoria</label>
+                <select id="f_cat">
+                  <option value="catalogo">Catálogo</option>
+                  <option value="kit">Kits</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Nome</label>
+                <input id="f_nome" type="text" />
+              </div>
+              <div>
+                <label>Preço</label>
+                <input id="f_preco" type="text" />
+              </div>
+            </div>
+
+            <label>Descrição</label>
+            <textarea id="f_desc"></textarea>
+
+            <div class="row">
+              <div>
+                <label>Foto (URL começando por /images/)</label>
+                <input id="f_img" type="text" placeholder="/images/kit-azul-cetim-5000.jpeg" />
+              </div>
+              <div>
+                <label>Estado</label>
+                <select id="f_status">
+                  <option value="disponivel">Disponível</option>
+                  <option value="esgotado">Esgotado</option>
+                </select>
+              </div>
+            </div>
+
+            <label>Video URL (opcional)</label>
+            <input id="f_vid" type="text" placeholder="https://..." />
+
+            <button id="save">Salvar</button>
+            <div id="result"></div>
+
+            <h3 style="margin-top:20px">Lista (para carregar no formulário)</h3>
+            <div style="overflow:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>Preço</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${products.map(p => `
+                    <tr>
+                      <td>${escapeHtml(p.id)}</td>
+                      <td>${escapeHtml(p.nome)}</td>
+                      <td>${escapeHtml(p.categoria)}</td>
+                      <td>${escapeHtml(p.preco)}</td>
+                      <td>${escapeHtml(p.status || 'disponivel')}</td>
+                      <td>
+                        <button class="ghost" data-load="${escapeHtml(p.id)}" type="button">Carregar</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('logout').addEventListener('click', () => {
+          localStorage.removeItem(ADMIN_TOKEN_KEY);
+          renderLogin();
+        });
+
+        const setForm = (p) => {
+          document.getElementById('f_id').value = p.id;
+          document.getElementById('f_cat').value = p.categoria;
+          document.getElementById('f_nome').value = p.nome;
+          document.getElementById('f_preco').value = p.preco;
+          document.getElementById('f_desc').value = p.descricao;
+          document.getElementById('f_img').value = p.imagem;
+          document.getElementById('f_status').value = p.status || 'disponivel';
+          document.getElementById('f_vid').value = p.videoUrl || '';
+        };
+
+        document.querySelectorAll('[data-load]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = Number(btn.getAttribute('data-load'));
+            const p = products.find(x => x.id === id);
+            if (p) setForm(p);
+          });
+        });
+
+        document.getElementById('save').addEventListener('click', async () => {
+          const payload = {
+            id: Number(document.getElementById('f_id').value),
+            categoria: document.getElementById('f_cat').value,
+            nome: document.getElementById('f_nome').value,
+            preco: document.getElementById('f_preco').value,
+            descricao: document.getElementById('f_desc').value,
+            imagem: document.getElementById('f_img').value,
+            status: document.getElementById('f_status').value,
+            videoUrl: document.getElementById('f_vid').value || undefined
+          };
+
+          const res = await authedFetch('save', payload);
+          const out = document.getElementById('result');
+          if (!res.ok || !res.data?.ok) {
+            out.className = 'err';
+            out.textContent = res.data?.error || 'Erro ao salvar.';
+            return;
+          }
+
+          out.className = 'ok';
+          out.textContent = 'Salvo! Atualize o site (ou faça deploy) para ver mudanças.';
+        });
+      }
+
+      // bootstrap
+      if (localStorage.getItem(ADMIN_TOKEN_KEY)) {
+        renderAdmin();
+      } else {
+        renderLogin();
+      }
+    </script>
   </body>
 </html>
+

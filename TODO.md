@@ -1,11 +1,10 @@
-# TODO - Commit essencial (lilyspace)
+# TODO — lilyspace Admin (painel leve por senha)
 
-- [ ] Verificar se `dist/` existe e decidir se entra no commit
-- [ ] Inicializar Git (`git init`), se necessário
-- [ ] Adicionar remoto GitHub (definir upstream)
-- [ ] Criar `.gitignore` coerente (evitar node_modules, logs, etc.)
-- [ ] Preparar lista de arquivos “essenciais” para commit (src/, public/, configs, package.json, etc.)
-- [ ] Commit inicial com mensagem
-- [ x] Fazer push para o branch correto
-- [ x] Confirmar que o push finalizou com sucesso
+- [ ] Confirmar objetivo: painel leve com senha (todos privilégios para dona e administrador)
+- [x] Implementar painel leve (substituir Decap CMS) em `src/pages/admin/index.astro`
+- [x] Implementar API via Netlify Function `admin-products` para listar e salvar `src/data/products.json`
+- [x] Criar README de configuração da Function em `netlify/functions/README_ADMIN_PANEL.md`
+- [ ] (opcional) Criar/ajustar configuração no Netlify com `ADMIN_PANEL_PASSWORD` (e token secret se usar)
+- [ ] Commit e push das mudanças
+- [ ] Validar localmente/build e depois testar login em `/admin` no deploy
 

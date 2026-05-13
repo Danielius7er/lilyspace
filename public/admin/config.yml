@@ -9,7 +9,7 @@ publish_mode: editorial_workflow
 media_folder: public/images
 public_folder: /images
 
-site_url: https://exemplo.pt
+site_url: https://lilyspaces.netlify.app/
 logo_url: /favicon.svg
 
 collections:

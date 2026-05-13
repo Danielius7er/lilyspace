@@ -6,6 +6,6 @@
 - [ ] Criar `.gitignore` coerente (evitar node_modules, logs, etc.)
 - [ ] Preparar lista de arquivos “essenciais” para commit (src/, public/, configs, package.json, etc.)
 - [ ] Commit inicial com mensagem
-- [ ] Fazer push para o branch correto
-- [ ] Confirmar que o push finalizou com sucesso
+- [ x] Fazer push para o branch correto
+- [ x] Confirmar que o push finalizou com sucesso
 

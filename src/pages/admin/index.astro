@@ -37,7 +37,7 @@
       .err { background:var(--err-bg); border:1px solid var(--err-border); color:var(--err-text); padding:12px; border-radius: 12px; margin-top: 12px; }
       .actions { display:flex; gap: 10px; align-items:center; justify-content: space-between; flex-wrap: wrap; }
       .actions-left { display:flex; align-items:center; gap: 10px; flex-wrap: wrap; }
-      .ghost { background: transparent; border: 1px solid var(--border); color:#111827; }
+      .ghost { background: transparent; border: 1px solid var(--border); color:#111827; padding: 10px 14px; }
       .small { font-size: 13px; }
       .two-col { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
       @media (max-width: 980px) { .two-col { grid-template-columns: 1fr; } }
@@ -62,11 +62,13 @@
         border: 1px solid var(--border); background:#fff;
       }
       .img-preview .hint{ font-size: 13px; color: var(--muted); line-height: 1.35; }
-      .btn-row{ display:flex; gap:10px; flex-wrap: wrap; align-items:center; margin-top: 12px; }
       .form-actions{ display:flex; align-items:center; gap: 12px; flex-wrap: wrap; }
       .result-area{ min-height: 44px; }
+      .btn-row{ display:flex; gap:10px; flex-wrap: wrap; align-items:center; margin-top: 12px; }
+      .btn-row button{ margin-top:0; }
     </style>
   </head>
+
   <body>
     <div class="wrap">
       <div id="app"></div>
@@ -129,7 +131,7 @@
           btn.disabled = true;
           const password = pw.value;
 
-          try{
+          try {
             const res = await fetch(endpoint + '?action=login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -145,7 +147,7 @@
 
             localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
             await renderAdmin();
-          } finally{
+          } finally {
             btn.disabled = false;
           }
         });
@@ -410,4 +412,100 @@
           document.getElementById('f_cat').value = p.categoria;
           document.getElementById('f_nome').value = p.nome;
           document.getElementById('f_preco').value = p.preco;
-          document.getElementById('
+          document.getElementById('f_desc').value = p.descricao;
+          document.getElementById('f_img').value = p.imagem || '';
+          document.getElementById('f_status').value = p.status || 'disponivel';
+          document.getElementById('f_vid').value = p.videoUrl || '';
+          updateImgPreview();
+          setStatusPreview();
+        }
+
+        document.addEventListener('click', (e) => {
+          const btn = e.target?.closest?.('[data-load]');
+          if (!btn) return;
+          const id = Number(btn.getAttribute('data-load'));
+          const p = products.find(x => Number(x.id) === id);
+          if (p) setForm(p);
+        });
+
+        document.getElementById('save').addEventListener('click', async () => {
+          const out = document.getElementById('result');
+          out.className = '';
+          out.textContent = '';
+
+          const payload = {
+            id: Number(document.getElementById('f_id').value),
+            categoria: document.getElementById('f_cat').value,
+            nome: document.getElementById('f_nome').value,
+            preco: document.getElementById('f_preco').value,
+            descricao: document.getElementById('f_desc').value,
+            imagem: document.getElementById('f_img').value,
+            status: document.getElementById('f_status').value,
+            videoUrl: document.getElementById('f_vid').value || undefined
+          };
+
+          if (!Number.isFinite(payload.id) || payload.id < 1) {
+            out.className = 'err';
+            out.textContent = 'ID inválido. Use um número (ex.: 1 ou 101).';
+            return;
+          }
+          if (!String(payload.nome ?? '').trim()) {
+            out.className = 'err';
+            out.textContent = 'Nome é obrigatório.';
+            return;
+          }
+          if (!String(payload.preco ?? '').trim()) {
+            out.className = 'err';
+            out.textContent = 'Preço é obrigatório.';
+            return;
+          }
+          if (!String(payload.descricao ?? '').trim()) {
+            out.className = 'err';
+            out.textContent = 'Descrição é obrigatória.';
+            return;
+          }
+
+          const imgCheck = validateImagem(payload.imagem);
+          if (!imgCheck.ok) {
+            out.className = 'err';
+            out.textContent = imgCheck.error;
+            return;
+          }
+
+          if (!payload.status || !['disponivel','esgotado'].includes(String(payload.status))) {
+            out.className = 'err';
+            out.textContent = 'Estado inválido (escolha “Disponível” ou “Esgotado”).';
+            return;
+          }
+
+          const saveBtn = document.getElementById('save');
+          try{
+            saveBtn.disabled = true;
+            out.className = 'muted';
+            out.textContent = 'A salvar...';
+
+            const res = await authedFetch('save', payload);
+
+            if (!res.ok || !res.data?.ok) {
+              out.className = 'err';
+              out.textContent = res.data?.error || 'Erro ao salvar.';
+              return;
+            }
+
+            out.className = 'ok';
+            out.textContent = 'Salvo! Atualize o site (ou faça deploy) para ver as mudanças.';
+          } finally{
+            saveBtn.disabled = false;
+          }
+        });
+      }
+
+      if (localStorage.getItem(ADMIN_TOKEN_KEY)) {
+        renderAdmin();
+      } else {
+        renderLogin();
+      }
+    </script>
+  </body>
+</html>
+

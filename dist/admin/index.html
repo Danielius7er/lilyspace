@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="pt" data-astro-cid-u2h3djql> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Painel da Loja (Admin)</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/_astro/index.DUTVnv7b.css">
-<link rel="stylesheet" href="/_astro/index.B2ezCjWG.css"></head> <body data-astro-cid-u2h3djql> <div class="wrap" data-astro-cid-u2h3djql> <div id="app" data-astro-cid-u2h3djql></div> </div> <script type="module">
+<link rel="stylesheet" href="/_astro/index._-Tm9xB0.css"></head> <body data-astro-cid-u2h3djql> <div class="wrap" data-astro-cid-u2h3djql> <div id="app" data-astro-cid-u2h3djql></div> </div> <script type="module">
       const ADMIN_TOKEN_KEY = 'admin_token';
 
       // Endpoint da Netlify Function (não alterar)
@@ -56,7 +56,7 @@
           btn.disabled = true;
           const password = pw.value;
 
-          try{
+          try {
             const res = await fetch(endpoint + '?action=login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -72,7 +72,7 @@
 
             localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
             await renderAdmin();
-          } finally{
+          } finally {
             btn.disabled = false;
           }
         });
@@ -337,4 +337,97 @@
           document.getElementById('f_cat').value = p.categoria;
           document.getElementById('f_nome').value = p.nome;
           document.getElementById('f_preco').value = p.preco;
-          document.getElementById('</script></body></html>
+          document.getElementById('f_desc').value = p.descricao;
+          document.getElementById('f_img').value = p.imagem || '';
+          document.getElementById('f_status').value = p.status || 'disponivel';
+          document.getElementById('f_vid').value = p.videoUrl || '';
+          updateImgPreview();
+          setStatusPreview();
+        }
+
+        document.addEventListener('click', (e) => {
+          const btn = e.target?.closest?.('[data-load]');
+          if (!btn) return;
+          const id = Number(btn.getAttribute('data-load'));
+          const p = products.find(x => Number(x.id) === id);
+          if (p) setForm(p);
+        });
+
+        document.getElementById('save').addEventListener('click', async () => {
+          const out = document.getElementById('result');
+          out.className = '';
+          out.textContent = '';
+
+          const payload = {
+            id: Number(document.getElementById('f_id').value),
+            categoria: document.getElementById('f_cat').value,
+            nome: document.getElementById('f_nome').value,
+            preco: document.getElementById('f_preco').value,
+            descricao: document.getElementById('f_desc').value,
+            imagem: document.getElementById('f_img').value,
+            status: document.getElementById('f_status').value,
+            videoUrl: document.getElementById('f_vid').value || undefined
+          };
+
+          if (!Number.isFinite(payload.id) || payload.id < 1) {
+            out.className = 'err';
+            out.textContent = 'ID inválido. Use um número (ex.: 1 ou 101).';
+            return;
+          }
+          if (!String(payload.nome ?? '').trim()) {
+            out.className = 'err';
+            out.textContent = 'Nome é obrigatório.';
+            return;
+          }
+          if (!String(payload.preco ?? '').trim()) {
+            out.className = 'err';
+            out.textContent = 'Preço é obrigatório.';
+            return;
+          }
+          if (!String(payload.descricao ?? '').trim()) {
+            out.className = 'err';
+            out.textContent = 'Descrição é obrigatória.';
+            return;
+          }
+
+          const imgCheck = validateImagem(payload.imagem);
+          if (!imgCheck.ok) {
+            out.className = 'err';
+            out.textContent = imgCheck.error;
+            return;
+          }
+
+          if (!payload.status || !['disponivel','esgotado'].includes(String(payload.status))) {
+            out.className = 'err';
+            out.textContent = 'Estado inválido (escolha “Disponível” ou “Esgotado”).';
+            return;
+          }
+
+          const saveBtn = document.getElementById('save');
+          try{
+            saveBtn.disabled = true;
+            out.className = 'muted';
+            out.textContent = 'A salvar...';
+
+            const res = await authedFetch('save', payload);
+
+            if (!res.ok || !res.data?.ok) {
+              out.className = 'err';
+              out.textContent = res.data?.error || 'Erro ao salvar.';
+              return;
+            }
+
+            out.className = 'ok';
+            out.textContent = 'Salvo! Atualize o site (ou faça deploy) para ver as mudanças.';
+          } finally{
+            saveBtn.disabled = false;
+          }
+        });
+      }
+
+      if (localStorage.getItem(ADMIN_TOKEN_KEY)) {
+        renderAdmin();
+      } else {
+        renderLogin();
+      }
+    </script> </body> </html>

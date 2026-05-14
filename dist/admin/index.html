@@ -1,11 +1,8 @@
 <!DOCTYPE html><html lang="pt" data-astro-cid-u2h3djql> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Painel da Loja (Admin)</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/_astro/index.DUTVnv7b.css">
-<link rel="stylesheet" href="/_astro/index._-Tm9xB0.css"></head> <body data-astro-cid-u2h3djql> <div class="wrap" data-astro-cid-u2h3djql> <div id="app" data-astro-cid-u2h3djql></div> </div> <script type="module">
+<link rel="stylesheet" href="/_astro/index.Cyj4T8iR.css"></head> <body data-astro-cid-u2h3djql> <div class="wrap" data-astro-cid-u2h3djql> <div id="app" data-astro-cid-u2h3djql></div> </div> <script type="module">
       const ADMIN_TOKEN_KEY = 'admin_token';
-
-      // Endpoint da Netlify Function (não alterar)
       const API_BASE = '';
       const endpoint = `${API_BASE}/.netlify/functions/admin-products`;
-
       const app = document.getElementById('app');
 
       function escapeHtml(str) {
@@ -23,18 +20,11 @@
         return { text: 'Disponível', cls: 'disponivel' };
       }
 
-      function validateImagem(imagem){
-        const value = String(imagem ?? '').trim();
-        if (!value) return { ok:false, error:'A Foto é obrigatória.' };
-        if (!value.startsWith('/images/')) return { ok:false, error:'A Foto deve começar por /images/. Ex.: /images/kit-azul-cetim-5000.jpeg' };
-        return { ok:true };
-      }
-
       function renderLogin() {
         app.innerHTML = `
           <div class="card">
             <h2 style="margin:0 0 6px;">Acesso ao Painel</h2>
-            <div class="muted">Use a senha para editar os produtos (preço, descrição, imagens e estado).</div>
+            <div class="muted">Use a senha para editar os produtos.</div>
 
             <label>Senha do painel</label>
             <input id="pw" type="password" placeholder="••••••" autocomplete="current-password" />
@@ -64,7 +54,6 @@
             });
 
             const data = await res.json().catch(() => ({}));
-
             if (!res.ok || !data?.ok) {
               msg.textContent = data?.error || 'Senha inválida.';
               return;
@@ -72,6 +61,8 @@
 
             localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
             await renderAdmin();
+          } catch (e) {
+            msg.textContent = 'Erro ao conectar.';
           } finally {
             btn.disabled = false;
           }
@@ -84,6 +75,16 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, ...(payload || {}) })
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, data };
+      }
+
+      async function authedMultipart(action, form) {
+        // não setar Content-Type manualmente (o browser define o boundary)
+        const res = await fetch(endpoint + '?action=' + encodeURIComponent(action), {
+          method: 'POST',
+          body: form
         });
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, data };
@@ -126,7 +127,7 @@
               <button class="ghost" id="logout" type="button">Sair</button>
             </div>
             <div class="muted" style="margin-top:8px;">
-              Atualiza os dados do catálogo. A Foto é guardada como link (URL) em <strong> /images/ ...</strong>.
+              Atualiza os dados do catálogo. <strong>Trocar foto = upload real</strong>.
             </div>
           </div>
 
@@ -172,23 +173,22 @@
 
               <div class="img-preview">
                 <div>
-                  <img id="img_preview" src="${escapeHtml(examples.kitImg || '')}" alt="Pré-visualização da foto" />
+                  <img id="img_preview" src="${escapeHtml(examples.kitImg || examples.catalogoImg || '')}" alt="Pré-visualização" />
                 </div>
                 <div class="hint">
-                  <strong>Como funciona:</strong> este painel não faz upload automático de ficheiros.<br/>
-                  Você só precisa colar o link da imagem.<br/>
-                  <span style="font-weight:700;">Formato:</span>
-                  <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">/images/nome-da-foto.jpeg</span>
-                  <div class="muted" style="margin-top:8px;">
-                    Ex.: ${escapeHtml(examples.kitImg || '/images/kit-azul-cetim-5000.jpeg')}
+                  <strong>Upload real:</strong> escolha o ficheiro no computador.
+                  <div class="muted" style="margin-top:6px;">
+                    A imagem será guardada e o painel grava o caminho no <strong>products.json</strong>.
                   </div>
                 </div>
               </div>
 
               <div class="row" style="margin-top:14px;">
                 <div>
-                  <label>Foto (URL começando por /images/)</label>
-                  <input id="f_img" type="text" placeholder="${escapeHtml(examples.kitImg || '/images/kit-azul-cetim-5000.jpeg')}" />
+                  <label>Foto (upload real)</label>
+                  <input id="f_img_file" type="file" accept="image/*" />
+                  <div class="muted" style="margin-top:6px;">Se não escolher ficheiro, a foto atual mantém-se.</div>
+                  <input id="f_img_current" type="hidden" />
                 </div>
                 <div>
                   <label>Estado</label>
@@ -211,7 +211,7 @@
               </div>
 
               <div class="muted" style="margin-top:12px;">
-                Após salvar, a mudança aparece depois do deploy/rebuild.
+                Após salvar, pode demorar um pouco até o site atualizar.
               </div>
             </div>
 
@@ -265,25 +265,29 @@
         });
 
         const imgPreviewEl = document.getElementById('img_preview');
-        const f_img = document.getElementById('f_img');
+        const f_img_file = document.getElementById('f_img_file');
+        const f_img_current = document.getElementById('f_img_current');
 
-        function updateImgPreview() {
-          const v = String(f_img?.value ?? '').trim();
-          if (!imgPreviewEl) return;
-          if (!v) {
-            imgPreviewEl.removeAttribute('src');
-            imgPreviewEl.alt = 'Sem foto';
-            imgPreviewEl.style.opacity = '0.7';
+        function updateImgPreview(){
+          const file = f_img_file?.files?.[0];
+          if (file) {
+            const url = URL.createObjectURL(file);
+            imgPreviewEl.src = url;
+            imgPreviewEl.alt = 'Pré-visualização (upload)';
             return;
           }
-          imgPreviewEl.src = v;
-          imgPreviewEl.alt = 'Pré-visualização da foto';
-          imgPreviewEl.style.opacity = '1';
+          const current = String(f_img_current?.value ?? '').trim();
+          if (current) {
+            imgPreviewEl.src = current;
+            imgPreviewEl.alt = 'Foto atual';
+            return;
+          }
+          imgPreviewEl.removeAttribute('src');
         }
 
-        f_img.addEventListener('input', updateImgPreview);
+        f_img_file?.addEventListener('change', () => updateImgPreview());
 
-        function setStatusPreview() {
+        function setStatusPreview(){
           const status = document.getElementById('f_status')?.value;
           const badge = document.getElementById('status_badge');
           if (!badge) return;
@@ -294,7 +298,6 @@
 
         document.getElementById('f_status').addEventListener('change', setStatusPreview);
         setStatusPreview();
-        updateImgPreview();
 
         const products_tbody = document.getElementById('products_tbody');
 
@@ -320,9 +323,7 @@
                 <td>${escapeHtml(p.categoria)}</td>
                 <td>${escapeHtml(p.preco)}</td>
                 <td><span class="badge ${s.cls}">${escapeHtml(s.text)}</span></td>
-                <td>
-                  <button class="ghost" data-load="${escapeHtml(p.id)}" type="button">Carregar</button>
-                </td>
+                <td><button class="ghost" data-load="${escapeHtml(p.id)}" type="button">Carregar</button></td>
               </tr>
             `;
           }).join('');
@@ -338,9 +339,11 @@
           document.getElementById('f_nome').value = p.nome;
           document.getElementById('f_preco').value = p.preco;
           document.getElementById('f_desc').value = p.descricao;
-          document.getElementById('f_img').value = p.imagem || '';
-          document.getElementById('f_status').value = p.status || 'disponivel';
           document.getElementById('f_vid').value = p.videoUrl || '';
+          document.getElementById('f_status').value = p.status || 'disponivel';
+
+          f_img_current.value = p.imagem || '';
+          if (f_img_file) f_img_file.value = '';
           updateImgPreview();
           setStatusPreview();
         }
@@ -358,71 +361,104 @@
           out.className = '';
           out.textContent = '';
 
-          const payload = {
-            id: Number(document.getElementById('f_id').value),
-            categoria: document.getElementById('f_cat').value,
-            nome: document.getElementById('f_nome').value,
-            preco: document.getElementById('f_preco').value,
-            descricao: document.getElementById('f_desc').value,
-            imagem: document.getElementById('f_img').value,
-            status: document.getElementById('f_status').value,
-            videoUrl: document.getElementById('f_vid').value || undefined
+          const f_id = document.getElementById('f_id');
+          const f_cat = document.getElementById('f_cat');
+          const f_nome = document.getElementById('f_nome');
+          const f_preco = document.getElementById('f_preco');
+          const f_desc = document.getElementById('f_desc');
+          const f_status = document.getElementById('f_status');
+          const f_vid = document.getElementById('f_vid');
+
+          const payloadBase = {
+            id: Number(f_id.value),
+            categoria: f_cat.value,
+            nome: f_nome.value,
+            preco: f_preco.value,
+            descricao: f_desc.value,
+            status: f_status.value,
+            videoUrl: (f_vid.value || undefined)
           };
 
-          if (!Number.isFinite(payload.id) || payload.id < 1) {
+          if (!Number.isFinite(payloadBase.id) || payloadBase.id < 1) {
             out.className = 'err';
             out.textContent = 'ID inválido. Use um número (ex.: 1 ou 101).';
             return;
           }
-          if (!String(payload.nome ?? '').trim()) {
+          if (!String(payloadBase.nome ?? '').trim()) {
             out.className = 'err';
             out.textContent = 'Nome é obrigatório.';
             return;
           }
-          if (!String(payload.preco ?? '').trim()) {
+          if (!String(payloadBase.preco ?? '').trim()) {
             out.className = 'err';
             out.textContent = 'Preço é obrigatório.';
             return;
           }
-          if (!String(payload.descricao ?? '').trim()) {
+          if (!String(payloadBase.descricao ?? '').trim()) {
             out.className = 'err';
             out.textContent = 'Descrição é obrigatória.';
             return;
           }
-
-          const imgCheck = validateImagem(payload.imagem);
-          if (!imgCheck.ok) {
-            out.className = 'err';
-            out.textContent = imgCheck.error;
-            return;
-          }
-
-          if (!payload.status || !['disponivel','esgotado'].includes(String(payload.status))) {
+          if (!payloadBase.status || !['disponivel','esgotado'].includes(String(payloadBase.status))) {
             out.className = 'err';
             out.textContent = 'Estado inválido (escolha “Disponível” ou “Esgotado”).';
             return;
           }
 
           const saveBtn = document.getElementById('save');
-          try{
+          const file = f_img_file?.files?.[0];
+
+          try {
             saveBtn.disabled = true;
             out.className = 'muted';
             out.textContent = 'A salvar...';
 
-            const res = await authedFetch('save', payload);
+            let res;
 
-            if (!res.ok || !res.data?.ok) {
+            if (file) {
+              // Upload real multipart (campo name="imagem")
+              const form = new FormData();
+              form.append('token', localStorage.getItem(ADMIN_TOKEN_KEY) || '');
+              form.append('id', String(payloadBase.id));
+              form.append('categoria', payloadBase.categoria);
+              form.append('nome', payloadBase.nome);
+              form.append('preco', payloadBase.preco);
+              form.append('descricao', payloadBase.descricao);
+              form.append('status', payloadBase.status);
+              if (payloadBase.videoUrl) form.append('videoUrl', String(payloadBase.videoUrl));
+              form.append('imagem', file, file.name);
+
+              res = await authedMultipart('save', form);
+            } else {
+              // Sem trocarr foto: envia JSON com a imagem atual.
+              const imagemAtual = String(f_img_current?.value ?? '').trim();
+              if (!imagemAtual) {
+                out.className = 'err';
+                out.textContent = 'Escolha uma foto (upload real) para esta referência.';
+                return;
+              }
+
+              res = await authedFetch('save', {
+                ...payloadBase,
+                imagem: imagemAtual
+              });
+            }
+
+            const data = res.data;
+            if (!res.ok || !data?.ok) {
               out.className = 'err';
-              out.textContent = res.data?.error || 'Erro ao salvar.';
+              out.textContent = data?.error || 'Erro ao salvar.';
               return;
             }
 
             out.className = 'ok';
-            out.textContent = 'Salvo! Atualize o site (ou faça deploy) para ver as mudanças.';
-          } finally{
+            out.textContent = 'Salvo! A foto e os dados foram atualizados.';
+          } finally {
             saveBtn.disabled = false;
           }
         });
+
+        updateImgPreview();
       }
 
       if (localStorage.getItem(ADMIN_TOKEN_KEY)) {

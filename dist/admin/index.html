@@ -1,3 +1,340 @@
-<!DOCTYPE html><html lang="pt" data-astro-cid-u2h3djql> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Painel da Loja</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/_astro/index.BfQTrXto.css">
-<style>body{margin:0}
-</style><script type="module" src="/_astro/hoisted.ZSMiu_Xr.js"></script></head> <body data-astro-cid-u2h3djql>  </body> </html>
+<!DOCTYPE html><html lang="pt" data-astro-cid-u2h3djql> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Painel da Loja (Admin)</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/_astro/index.DUTVnv7b.css">
+<link rel="stylesheet" href="/_astro/index.B2ezCjWG.css"></head> <body data-astro-cid-u2h3djql> <div class="wrap" data-astro-cid-u2h3djql> <div id="app" data-astro-cid-u2h3djql></div> </div> <script type="module">
+      const ADMIN_TOKEN_KEY = 'admin_token';
+
+      // Endpoint da Netlify Function (não alterar)
+      const API_BASE = '';
+      const endpoint = `${API_BASE}/.netlify/functions/admin-products`;
+
+      const app = document.getElementById('app');
+
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '<')
+          .replaceAll('>', '>')
+          .replaceAll('"', '"')
+          .replaceAll("'", '&#39;');
+      }
+
+      function statusLabel(s){
+        const v = String(s ?? 'disponivel');
+        if (v === 'esgotado') return { text: 'Esgotado', cls: 'esgotado' };
+        return { text: 'Disponível', cls: 'disponivel' };
+      }
+
+      function validateImagem(imagem){
+        const value = String(imagem ?? '').trim();
+        if (!value) return { ok:false, error:'A Foto é obrigatória.' };
+        if (!value.startsWith('/images/')) return { ok:false, error:'A Foto deve começar por /images/. Ex.: /images/kit-azul-cetim-5000.jpeg' };
+        return { ok:true };
+      }
+
+      function renderLogin() {
+        app.innerHTML = `
+          <div class="card">
+            <h2 style="margin:0 0 6px;">Acesso ao Painel</h2>
+            <div class="muted">Use a senha para editar os produtos (preço, descrição, imagens e estado).</div>
+
+            <label>Senha do painel</label>
+            <input id="pw" type="password" placeholder="••••••" autocomplete="current-password" />
+
+            <div class="btn-row">
+              <button id="btn" type="button">Entrar</button>
+            </div>
+
+            <div id="msg" class="muted" style="margin-top:10px" aria-live="polite"></div>
+          </div>
+        `;
+
+        const btn = document.getElementById('btn');
+        const pw = document.getElementById('pw');
+        const msg = document.getElementById('msg');
+
+        btn.addEventListener('click', async () => {
+          msg.textContent = 'A validar...';
+          btn.disabled = true;
+          const password = pw.value;
+
+          try{
+            const res = await fetch(endpoint + '?action=login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password })
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok || !data?.ok) {
+              msg.textContent = data?.error || 'Senha inválida.';
+              return;
+            }
+
+            localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+            await renderAdmin();
+          } finally{
+            btn.disabled = false;
+          }
+        });
+      }
+
+      async function authedFetch(action, payload) {
+        const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+        const res = await fetch(endpoint + '?action=' + encodeURIComponent(action), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, ...(payload || {}) })
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, data };
+      }
+
+      function getExamples(products){
+        const catalogo = products.find(p => p.categoria === 'catalogo');
+        const kit = products.find(p => p.categoria === 'kit');
+        return {
+          catalogoImg: catalogo?.imagem || '',
+          kitImg: kit?.imagem || '',
+          catalogo: catalogo || null,
+          kit: kit || null
+        };
+      }
+
+      async function renderAdmin() {
+        const authToken = localStorage.getItem(ADMIN_TOKEN_KEY);
+        if (!authToken) return renderLogin();
+
+        const auth = await authedFetch('list');
+        if (!auth.ok) {
+          localStorage.removeItem(ADMIN_TOKEN_KEY);
+          return renderLogin();
+        }
+
+        const products = auth.data?.products || [];
+        const examples = getExamples(products);
+
+        app.innerHTML = `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="actions">
+              <div class="actions-left">
+                <h2 style="margin:0;">Editar Produtos</h2>
+                <span class="chip">
+                  <span>Registos</span>
+                  <strong>${escapeHtml(products.length)}</strong>
+                </span>
+              </div>
+              <button class="ghost" id="logout" type="button">Sair</button>
+            </div>
+            <div class="muted" style="margin-top:8px;">
+              Atualiza os dados do catálogo. A Foto é guardada como link (URL) em <strong> /images/ ...</strong>.
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <h3 class="section-title" style="margin-top:0">1) Dados do produto</h3>
+              <div class="muted small" style="margin-bottom:14px;">
+                Preencha os campos e clique em <strong>Salvar</strong>.
+              </div>
+
+              <div class="row">
+                <div>
+                  <label>ID (número)</label>
+                  <input id="f_id" type="number" min="1" placeholder="Ex.: 1 ou 101" />
+                  <div class="muted" style="margin-top:6px;">Dica: se for um novo produto, use um ID que ainda não exista.</div>
+                </div>
+                <div>
+                  <label>Categoria</label>
+                  <select id="f_cat">
+                    <option value="catalogo">Catálogo</option>
+                    <option value="kit">Kits</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <div>
+                  <label>Nome</label>
+                  <input id="f_nome" type="text" placeholder="Ex.: Laço grande (unidade)" />
+                </div>
+                <div>
+                  <label>Preço</label>
+                  <input id="f_preco" type="text" placeholder="Ex.: 2.800,00 Kz" />
+                </div>
+              </div>
+
+              <label>Descrição</label>
+              <textarea id="f_desc" placeholder="Escreva uma descrição curta e clara do produto."></textarea>
+
+              <div class="hr"></div>
+
+              <h3 class="section-title" style="margin:0 0 6px;">2) Foto e Estado</h3>
+
+              <div class="img-preview">
+                <div>
+                  <img id="img_preview" src="${escapeHtml(examples.kitImg || '')}" alt="Pré-visualização da foto" />
+                </div>
+                <div class="hint">
+                  <strong>Como funciona:</strong> este painel não faz upload automático de ficheiros.<br/>
+                  Você só precisa colar o link da imagem.<br/>
+                  <span style="font-weight:700;">Formato:</span>
+                  <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">/images/nome-da-foto.jpeg</span>
+                  <div class="muted" style="margin-top:8px;">
+                    Ex.: ${escapeHtml(examples.kitImg || '/images/kit-azul-cetim-5000.jpeg')}
+                  </div>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:14px;">
+                <div>
+                  <label>Foto (URL começando por /images/)</label>
+                  <input id="f_img" type="text" placeholder="${escapeHtml(examples.kitImg || '/images/kit-azul-cetim-5000.jpeg')}" />
+                </div>
+                <div>
+                  <label>Estado</label>
+                  <select id="f_status">
+                    <option value="disponivel">Disponível</option>
+                    <option value="esgotado">Esgotado</option>
+                  </select>
+                  <div style="margin-top:10px;">
+                    <span id="status_badge" class="badge disponivel">Disponível</span>
+                  </div>
+                </div>
+              </div>
+
+              <label>Video URL (opcional)</label>
+              <input id="f_vid" type="text" placeholder="https://..." />
+
+              <div class="form-actions" style="margin-top:14px;">
+                <button id="save" type="button">Salvar</button>
+                <div id="result" class="result-area"></div>
+              </div>
+
+              <div class="muted" style="margin-top:12px;">
+                Após salvar, a mudança aparece depois do deploy/rebuild.
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="section-title" style="margin-top:0">3) Lista (carregar para editar)</h3>
+              <div class="muted small" style="margin-bottom:10px;">
+                Use a busca para encontrar rápido por <strong>ID</strong> ou <strong>nome</strong>.
+              </div>
+
+              <div class="row" style="grid-template-columns: 1fr 160px;">
+                <div>
+                  <label style="margin-top:0;">Buscar</label>
+                  <input id="f_search" type="text" placeholder="Ex.: 101 ou laços" />
+                </div>
+                <div>
+                  <label style="margin-top:0;">Categoria</label>
+                  <select id="f_search_cat">
+                    <option value="all">Todas</option>
+                    <option value="catalogo">Catálogo</option>
+                    <option value="kit">Kits</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-wrap" style="margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nome</th>
+                      <th>Categoria</th>
+                      <th>Preço</th>
+                      <th>Estado</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="products_tbody"></tbody>
+                </table>
+              </div>
+
+              <div class="muted" style="margin-top:10px;">
+                Dica: clique em <strong>Carregar</strong> para preencher o formulário.
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('logout').addEventListener('click', () => {
+          localStorage.removeItem(ADMIN_TOKEN_KEY);
+          renderLogin();
+        });
+
+        const imgPreviewEl = document.getElementById('img_preview');
+        const f_img = document.getElementById('f_img');
+
+        function updateImgPreview() {
+          const v = String(f_img?.value ?? '').trim();
+          if (!imgPreviewEl) return;
+          if (!v) {
+            imgPreviewEl.removeAttribute('src');
+            imgPreviewEl.alt = 'Sem foto';
+            imgPreviewEl.style.opacity = '0.7';
+            return;
+          }
+          imgPreviewEl.src = v;
+          imgPreviewEl.alt = 'Pré-visualização da foto';
+          imgPreviewEl.style.opacity = '1';
+        }
+
+        f_img.addEventListener('input', updateImgPreview);
+
+        function setStatusPreview() {
+          const status = document.getElementById('f_status')?.value;
+          const badge = document.getElementById('status_badge');
+          if (!badge) return;
+          const s = statusLabel(status);
+          badge.className = `badge ${s.cls}`;
+          badge.textContent = s.text;
+        }
+
+        document.getElementById('f_status').addEventListener('change', setStatusPreview);
+        setStatusPreview();
+        updateImgPreview();
+
+        const products_tbody = document.getElementById('products_tbody');
+
+        function renderTable() {
+          const search = String(document.getElementById('f_search').value ?? '').trim().toLowerCase();
+          const cat = document.getElementById('f_search_cat').value;
+
+          const filtered = products.filter(p => {
+            const pcat = String(p.categoria ?? '');
+            const okCat = cat === 'all' ? true : pcat === cat;
+            const hayId = String(p.id ?? '').toLowerCase();
+            const hayNome = String(p.nome ?? '').toLowerCase();
+            const okSearch = !search ? true : hayId.includes(search) || hayNome.includes(search);
+            return okCat && okSearch;
+          });
+
+          products_tbody.innerHTML = filtered.map(p => {
+            const s = statusLabel(p.status || 'disponivel');
+            return `
+              <tr>
+                <td>${escapeHtml(p.id)}</td>
+                <td>${escapeHtml(p.nome)}</td>
+                <td>${escapeHtml(p.categoria)}</td>
+                <td>${escapeHtml(p.preco)}</td>
+                <td><span class="badge ${s.cls}">${escapeHtml(s.text)}</span></td>
+                <td>
+                  <button class="ghost" data-load="${escapeHtml(p.id)}" type="button">Carregar</button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('f_search').addEventListener('input', renderTable);
+        document.getElementById('f_search_cat').addEventListener('change', renderTable);
+        renderTable();
+
+        function setForm(p) {
+          document.getElementById('f_id').value = p.id;
+          document.getElementById('f_cat').value = p.categoria;
+          document.getElementById('f_nome').value = p.nome;
+          document.getElementById('f_preco').value = p.preco;
+          document.getElementById('</script></body></html>

@@ -76,7 +76,6 @@
     </div>
 
     <script type="module">
-      const ADMIN_TOKEN_KEY = 'admin_token';
       const API_BASE = '';
       const endpoint = `${API_BASE}/.netlify/functions/admin-products`;
       const app = document.getElementById('app');
@@ -139,7 +138,6 @@
               msg.textContent = data?.error || 'Senha inválida.';
               return;
             }
-            localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
             await renderAdmin();
           } finally{
             btn.disabled = false;
@@ -148,11 +146,11 @@
       }
 
       async function authedFetch(action, payload) {
-        const token = localStorage.getItem(ADMIN_TOKEN_KEY);
         const res = await fetch(endpoint + '?action=' + encodeURIComponent(action), {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, ...(payload || {}) })
+          body: JSON.stringify(payload || {})
         });
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, data };
@@ -193,12 +191,8 @@
       }
 
       async function renderAdmin() {
-        const authToken = localStorage.getItem(ADMIN_TOKEN_KEY);
-        if (!authToken) return renderLogin();
-
         const auth = await authedFetch('list');
         if (!auth.ok) {
-          localStorage.removeItem(ADMIN_TOKEN_KEY);
           return renderLogin();
         }
 
@@ -351,8 +345,8 @@
           </div>
         `;
 
-        document.getElementById('logout').addEventListener('click', () => {
-          localStorage.removeItem(ADMIN_TOKEN_KEY);
+        document.getElementById('logout').addEventListener('click', async () => {
+          await authedFetch('logout');
           renderLogin();
         });
 
@@ -488,11 +482,7 @@
         });
       }
 
-      if (localStorage.getItem(ADMIN_TOKEN_KEY)) {
-        renderAdmin();
-      } else {
-        renderLogin();
-      }
+      renderAdmin();
     </script>
   </body>
 </html>

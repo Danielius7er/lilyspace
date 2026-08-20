@@ -40,6 +40,15 @@ collections:
               - { name: preco, label: Preço, widget: string, hint: "Ex.: 2.800,00 Kz" }
               - { name: descricao, label: Descrição, widget: text }
               - { name: imagem, label: Foto, widget: image }
+              - name: images
+                label: Galeria de fotos
+                widget: list
+                required: false
+                fields:
+                  - { name: url, label: Ficheiro, widget: image }
+                  - { name: alt, label: Texto alternativo, widget: string }
+                  - { name: order, label: Ordem, widget: number, value_type: int }
+                  - { name: isCover, label: Foto de capa, widget: boolean, default: false }
               - name: status
                 label: Estado
                 widget: select

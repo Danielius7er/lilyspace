@@ -2,199 +2,44 @@
 import MainLayout from "../layouts/MainLayout.astro";
 import Header from "../components/Header.astro";
 import Hero from "../components/Hero.astro";
-import ProductCard from "../components/ProductCard.astro";
+import ProductGrid from "../components/ProductGrid.astro";
 import FloatingWhatsApp from "../components/FloatingWhatsApp.astro";
-import productsData from "../data/products.json";
+import { categories, productCover, products } from "../lib/products";
 import { site } from "../site.config";
 
 const title = `${site.name} — Catálogo`;
-const canonical = site.canonicalUrl.replace(/\/$/, "");
-const products = productsData.products;
-const kits = products.filter((p) => p.categoria === "kit");
-const catalogo = products.filter((p) => p.categoria !== "kit");
-const firstImg = products[0]?.imagem;
-const ogImage =
-  typeof firstImg === "string" && firstImg.startsWith("/")
-    ? `${canonical}${firstImg}`
-    : firstImg?.startsWith("http")
-      ? firstImg
-      : undefined;
+const destaques = products.filter((product) => product.destaque);
+const kits = products.filter((product) => product.categoria === "kit");
+const ogImage = products[0] ? productCover(products[0]) : undefined;
+const whatsappHref = `https://wa.me/${site.whatsappE164}?text=${encodeURIComponent(`Olá! Vim pelo site da ${site.name} e gostaria de fazer uma encomenda.`)}`;
 ---
 
 <MainLayout title={title} description={site.description} ogImage={ogImage}>
   <Header />
-  <div class="mx-auto max-w-6xl px-4 pb-6 pt-6 sm:px-6 sm:pb-8 sm:pt-8">
-    <Hero />
-  </div>
-
+  <div class="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-6 sm:pt-8"><Hero /></div>
   <main id="conteudo-principal" class="mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-6">
-    <div class="mb-10 flex flex-col items-center gap-3 text-center sm:mb-12">
-      <span
-        class="rounded-full bg-white px-4 py-1 text-xs font-semibold uppercase tracking-widest text-brand-burgundy shadow-soft ring-1 ring-brand-burgundy/10"
-      >
-        Catálogo
-      </span>
-      <h2
-        class="font-display text-3xl font-semibold text-brand-burgundy sm:text-4xl"
-      >
-        Peças disponíveis
-      </h2>
-      <p class="max-w-2xl text-sm text-brand-ink/75 sm:text-base">
-        {products.length} referências com fotos reais. Valores em <strong
-          class="font-medium text-brand-burgundy">Kz</strong
-        > conforme os cartazes da loja.
-      </p>
-      <nav
-        aria-label="Filtro do catálogo"
-        class="mt-3 flex flex-wrap items-center justify-center gap-2"
-      >
-        <button
-          type="button"
-          data-filter-btn="todos"
-          aria-pressed="true"
-          class="inline-flex items-center rounded-full bg-brand-burgundy px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-soft transition hover:bg-brand-burgundy/90"
-        >
-          Todos
-        </button>
-        <button
-          type="button"
-          data-filter-btn="kit"
-          aria-pressed="false"
-          class="inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand-burgundy ring-1 ring-brand-burgundy/20 transition hover:bg-brand-blush"
-        >
-          Kits
-        </button>
-        <button
-          type="button"
-          data-filter-btn="normal"
-          aria-pressed="false"
-          class="inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand-burgundy ring-1 ring-brand-burgundy/20 transition hover:bg-brand-blush"
-        >
-          Normal
-        </button>
+    <section class="mb-16" aria-labelledby="categories-heading">
+      <div class="mb-6 text-center"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-brand-burgundy">Explorar</p><h2 id="categories-heading" class="mt-2 font-display text-3xl font-semibold text-brand-burgundy">Encontre o seu favorito</h2></div>
+      <nav class="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2" aria-label="Categorias de produtos">
+        <a href="/produtos" class="rounded-2xl border border-brand-burgundy/10 bg-white p-5 text-center font-display text-xl font-semibold text-brand-burgundy shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">Todos os produtos</a>
+        {categories.map((category) => <a href={`/categoria/${category.slug}`} class="rounded-2xl border border-brand-burgundy/10 bg-white p-5 text-center font-display text-xl font-semibold text-brand-burgundy shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">{category.label}</a>)}
       </nav>
-    </div>
-
-    <section data-section="kit" class="mb-14 transition-all duration-300" aria-labelledby="kits-heading">
-      <div class="mb-6 flex items-end justify-between gap-3">
-        <h3 id="kits-heading" class="font-display text-2xl font-semibold text-brand-burgundy sm:text-3xl">
-          Kits
-        </h3>
-        <p class="text-xs text-brand-ink/70 sm:text-sm">{kits.length} kits</p>
-      </div>
-      <ul
-        class="grid list-none gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
-        role="list"
-      >
-        {
-          kits.map((p) => (
-            <li>
-              <ProductCard product={p} />
-            </li>
-          ))
-        }
-      </ul>
     </section>
 
-    <section data-section="normal" class="transition-all duration-300" aria-labelledby="catalogo-heading">
-      <div class="mb-6 flex items-end justify-between gap-3">
-        <h3 id="catalogo-heading" class="font-display text-2xl font-semibold text-brand-burgundy sm:text-3xl">
-          Produtos individuais e toucas
-        </h3>
-        <p class="text-xs text-brand-ink/70 sm:text-sm">{catalogo.length} itens</p>
-      </div>
-    <ul
-      class="grid list-none gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
-      role="list"
-    >
-      {
-        catalogo.map((p) => (
-          <li>
-            <ProductCard product={p} />
-          </li>
-        ))
-      }
-    </ul>
+    {destaques.length >= 4 && <section class="mb-16" aria-labelledby="destaques-heading"><div class="mb-6 flex items-end justify-between gap-3"><div><p class="text-xs font-semibold uppercase tracking-[0.2em] text-brand-burgundy">Seleção da loja</p><h2 id="destaques-heading" class="mt-2 font-display text-3xl font-semibold text-brand-burgundy">Em destaque</h2></div><a href="/produtos" class="text-sm font-semibold text-brand-burgundy underline underline-offset-4">Ver todos</a></div><ProductGrid products={destaques} /></section>}
+
+    {kits.length >= 4 && <section class="mb-16" aria-labelledby="kits-heading"><div class="mb-6 flex items-end justify-between gap-3"><div><p class="text-xs font-semibold uppercase tracking-[0.2em] text-brand-burgundy">Para combinar</p><h2 id="kits-heading" class="mt-2 font-display text-3xl font-semibold text-brand-burgundy">Kits e combos</h2></div><a href="/kits" class="text-sm font-semibold text-brand-burgundy underline underline-offset-4">Ver kits</a></div><ProductGrid products={kits.slice(0, 6)} /></section>}
+
+    <section class="mb-16 grid gap-5 sm:grid-cols-3" aria-label="Benefícios da loja">
+      <div class="rounded-2xl bg-brand-blush/55 p-6"><h2 class="font-display text-xl font-semibold text-brand-burgundy">Peças com carinho</h2><p class="mt-2 text-sm leading-relaxed text-brand-ink/75">Acessórios escolhidos para acompanhar momentos especiais.</p></div>
+      <div class="rounded-2xl bg-brand-blush/55 p-6"><h2 class="font-display text-xl font-semibold text-brand-burgundy">Atendimento direto</h2><p class="mt-2 text-sm leading-relaxed text-brand-ink/75">Tire dúvidas e confirme a encomenda pelo WhatsApp.</p></div>
+      <div class="rounded-2xl bg-brand-blush/55 p-6"><h2 class="font-display text-xl font-semibold text-brand-burgundy">Encomenda simples</h2><p class="mt-2 text-sm leading-relaxed text-brand-ink/75">Escolha o produto e envie a mensagem já preenchida.</p></div>
     </section>
+
+    <section class="mb-16" aria-labelledby="faq-heading"><h2 id="faq-heading" class="font-display text-3xl font-semibold text-brand-burgundy">Perguntas frequentes</h2><div class="mt-5 divide-y divide-brand-burgundy/10 rounded-2xl border border-brand-burgundy/10 bg-white px-5"><details class="py-4"><summary class="cursor-pointer font-semibold text-brand-burgundy">Como faço uma encomenda?</summary><p class="mt-3 text-sm text-brand-ink/75">Use o botão de WhatsApp no produto desejado para enviar a sua mensagem.</p></details><details class="py-4"><summary class="cursor-pointer font-semibold text-brand-burgundy">Como confirmo a disponibilidade?</summary><p class="mt-3 text-sm text-brand-ink/75">Confirme diretamente no WhatsApp antes de finalizar a encomenda.</p></details></div></section>
+
+    <section class="rounded-3xl bg-brand-burgundy px-6 py-10 text-center text-white sm:px-10"><h2 class="font-display text-3xl font-semibold">Pronta para escolher?</h2><p class="mx-auto mt-3 max-w-xl text-sm text-white/80">Veja o catálogo completo ou fale connosco para receber ajuda.</p><a href={whatsappHref} target="_blank" rel="noopener noreferrer" class="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-brand-burgundy shadow-sm hover:bg-brand-blush">Falar no WhatsApp</a></section>
   </main>
-
-  <footer
-    class="border-t border-brand-burgundy/10 bg-white/70 py-10 backdrop-blur-sm"
-  >
-    <div
-      class="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 text-center sm:px-6"
-    >
-      <p class="font-display text-lg font-semibold text-brand-burgundy">
-        {site.name}
-      </p>
-      <p class="max-w-md text-sm text-brand-ink/70">
-        Obrigada por visitar o nosso catálogo. Dúvidas, trocas ou encomendas personalizadas — fale connosco no WhatsApp.
-      </p>
-      <p class="text-xs text-brand-ink/50">
-        © {new Date().getFullYear()}
-        {site.name}. Todos os direitos reservados.
-      </p>
-    </div>
-  </footer>
-
+  <footer class="border-t border-brand-burgundy/10 bg-white py-10 text-center"><p class="font-display text-lg font-semibold text-brand-burgundy">{site.name}</p><p class="mt-2 text-xs text-brand-ink/50">© {new Date().getFullYear()} {site.name}. Todos os direitos reservados.</p></footer>
   <FloatingWhatsApp />
-
-  <script>
-    const buttons = Array.from(document.querySelectorAll("[data-filter-btn]"));
-    const sectionKit = document.querySelector('[data-section="kit"]');
-    const sectionNormal = document.querySelector('[data-section="normal"]');
-
-    function setButtonState(active) {
-      buttons.forEach((btn) => {
-        const isActive = btn.dataset.filterBtn === active;
-        btn.setAttribute("aria-pressed", String(isActive));
-        btn.classList.toggle("bg-brand-burgundy", isActive);
-        btn.classList.toggle("text-white", isActive);
-        btn.classList.toggle("shadow-soft", isActive);
-        btn.classList.toggle("bg-white", !isActive);
-        btn.classList.toggle("text-brand-burgundy", !isActive);
-        btn.classList.toggle("ring-1", !isActive);
-        btn.classList.toggle("ring-brand-burgundy/20", !isActive);
-      });
-    }
-
-    function showSection(section, show) {
-      if (!section) return;
-      if (show) {
-        section.classList.remove("hidden");
-        requestAnimationFrame(() => {
-          section.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
-          section.classList.add("opacity-100", "translate-y-0");
-        });
-      } else {
-        section.classList.remove("opacity-100", "translate-y-0");
-        section.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
-        window.setTimeout(() => {
-          section.classList.add("hidden");
-        }, 220);
-      }
-    }
-
-    function applyFilter(filter) {
-      setButtonState(filter);
-      if (filter === "kit") {
-        showSection(sectionKit, true);
-        showSection(sectionNormal, false);
-      } else if (filter === "normal") {
-        showSection(sectionKit, false);
-        showSection(sectionNormal, true);
-      } else {
-        showSection(sectionKit, true);
-        showSection(sectionNormal, true);
-      }
-    }
-
-    buttons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        applyFilter(btn.dataset.filterBtn || "todos");
-      });
-    });
-
-    applyFilter("todos");
-  </script>
 </MainLayout>

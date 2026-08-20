@@ -7,6 +7,7 @@
       "preco": "2.800,00 Kz",
       "descricao": "Laços em tecido, várias cores. Ideal para meninas e para quem gosta de combinar.",
       "imagem": "/images/lacos-tres-pares-2800.jpeg",
+      "images": [{ "url": "/images/lacos-tres-pares-2800.jpeg", "alt": "Conjunto de três pares de laços", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -16,6 +17,7 @@
       "preco": "1.500,00 Kz",
       "descricao": "Laço em tecido com acabamento cuidado. Peça individual.",
       "imagem": "/images/laco-unitario-1500.jpeg",
+      "images": [{ "url": "/images/laco-unitario-1500.jpeg", "alt": "Laço grande em tecido", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -25,6 +27,7 @@
       "preco": "1.750,00 Kz",
       "descricao": "Brilho suave, cores nude, azul-acinzentado e castanho.",
       "imagem": "/images/laco-saten-1750.jpeg",
+      "images": [{ "url": "/images/laco-saten-1750.jpeg", "alt": "Laço de cetim e gorgurão", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -34,6 +37,7 @@
       "preco": "1.750,00 Kz",
       "descricao": "Tom marfim/off-white em cetim; grande e elegante.",
       "imagem": "/images/laco-cetim-marfim-1750.jpeg",
+      "images": [{ "url": "/images/laco-cetim-marfim-1750.jpeg", "alt": "Laço de cetim marfim", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -43,6 +47,7 @@
       "preco": "1.250,00 Kz",
       "descricao": "Tons terrosos e pastel; ótimo para o dia a dia.",
       "imagem": "/images/laco-tecido-1250.jpeg",
+      "images": [{ "url": "/images/laco-tecido-1250.jpeg", "alt": "Laço de tecido", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -52,6 +57,7 @@
       "preco": "2.800,00 Kz",
       "descricao": "Interior brilhante em cetim; combinação clássica.",
       "imagem": "/images/touca-cetim-verde-preto-2800.jpeg",
+      "images": [{ "url": "/images/touca-cetim-verde-preto-2800.jpeg", "alt": "Touca de cetim verde e preta", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -61,6 +67,7 @@
       "preco": "2.800,00 Kz",
       "descricao": "Tom chocolate com interior preto; acabamento acetinado.",
       "imagem": "/images/touca-cetim-castanha-2800.jpeg",
+      "images": [{ "url": "/images/touca-cetim-castanha-2800.jpeg", "alt": "Touca de cetim castanha", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -70,6 +77,7 @@
       "preco": "2.800,00 Kz",
       "descricao": "Tom vinho brilhante com interior preto; elegante e confortável.",
       "imagem": "/images/touca-cetim-vinho-2800.jpeg",
+      "images": [{ "url": "/images/touca-cetim-vinho-2800.jpeg", "alt": "Touca de cetim vinho", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -79,6 +87,7 @@
       "preco": "2.000,00 Kz",
       "descricao": "Detalhe de pérolas no contorno e no nó; laço comprido.",
       "imagem": "/images/laco-branco-perolas-2000.jpeg",
+      "images": [{ "url": "/images/laco-branco-perolas-2000.jpeg", "alt": "Laço branco com pérolas", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -88,6 +97,7 @@
       "preco": "A partir de 1.250,00 Kz",
       "descricao": "Várias opções em stock. Diga no WhatsApp a cor ou o modelo que procura.",
       "imagem": "/images/vitrine-lacos.jpeg",
+      "images": [{ "url": "/images/vitrine-lacos.jpeg", "alt": "Vitrine com laços em várias cores", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -97,6 +107,7 @@
       "preco": "5.000,00 Kz",
       "descricao": "Conjunto em azul acetinado com laços de tamanhos diferentes.",
       "imagem": "/images/kit-azul-cetim-5000.jpeg",
+      "images": [{ "url": "/images/kit-azul-cetim-5000.jpeg", "alt": "Kit de laços cetim azul", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -106,6 +117,7 @@
       "preco": "2.250,00 Kz",
       "descricao": "Kit preto clássico com laço e scrunchie a combinar.",
       "imagem": "/images/kit-preto-cetim-2250.jpeg",
+      "images": [{ "url": "/images/kit-preto-cetim-2250.jpeg", "alt": "Kit de laço e scrunchie preto", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -115,6 +127,7 @@
       "preco": "2.850,00 Kz",
       "descricao": "Duas cores em contraste suave para uso diário.",
       "imagem": "/images/kit-bege-azul-2850.jpeg",
+      "images": [{ "url": "/images/kit-bege-azul-2850.jpeg", "alt": "Kit de laços bege e azul", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -124,6 +137,7 @@
       "preco": "4.500,00 Kz",
       "descricao": "Conjunto com peças lisas e xadrez em vermelho.",
       "imagem": "/images/kit-natal-4500.jpeg",
+      "images": [{ "url": "/images/kit-natal-4500.jpeg", "alt": "Kit xadrez vermelho", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -133,6 +147,7 @@
       "preco": "4.500,00 Kz",
       "descricao": "Kit verde elegante com peças variadas e scrunchie.",
       "imagem": "/images/kit-verde-4500.jpeg",
+      "images": [{ "url": "/images/kit-verde-4500.jpeg", "alt": "Kit verde musgo", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -142,6 +157,7 @@
       "preco": "5.500,00 Kz",
       "descricao": "Acabamento acetinado com brilho e peças em vários formatos.",
       "imagem": "/images/kit-verde-cetim-5500.jpeg",
+      "images": [{ "url": "/images/kit-verde-cetim-5500.jpeg", "alt": "Kit verde cetim premium", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -151,6 +167,7 @@
       "preco": "8.000,00 Kz",
       "descricao": "Conjunto marfim com múltiplos laços para combinar.",
       "imagem": "/images/kit-marfim-8000.jpeg",
+      "images": [{ "url": "/images/kit-marfim-8000.jpeg", "alt": "Kit marfim completo", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -160,6 +177,7 @@
       "preco": "7.500,00 Kz",
       "descricao": "Kit lilás com várias peças para diferentes penteados.",
       "imagem": "/images/kit-lilas-7500.jpeg",
+      "images": [{ "url": "/images/kit-lilas-7500.jpeg", "alt": "Kit lilás completo", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -169,6 +187,7 @@
       "preco": "5.000,00 Kz",
       "descricao": "Conjunto fúcsia vibrante em tamanhos variados.",
       "imagem": "/images/kit-fucsia-5000.jpeg",
+      "images": [{ "url": "/images/kit-fucsia-5000.jpeg", "alt": "Kit fúcsia", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -178,6 +197,7 @@
       "preco": "4.500,00 Kz",
       "descricao": "Kit vinho com laços e scrunchie no mesmo tom.",
       "imagem": "/images/kit-vinho-4500.jpeg",
+      "images": [{ "url": "/images/kit-vinho-4500.jpeg", "alt": "Kit vinho", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -187,6 +207,7 @@
       "preco": "6.500,00 Kz",
       "descricao": "Conjunto na cor uva com peças grandes e pequenas.",
       "imagem": "/images/kit-uva-6500.jpeg",
+      "images": [{ "url": "/images/kit-uva-6500.jpeg", "alt": "Kit uva", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -196,6 +217,7 @@
       "preco": "6.500,00 Kz",
       "descricao": "Kit castanho com maior variedade de modelos.",
       "imagem": "/images/kit-castanho-6500.jpeg",
+      "images": [{ "url": "/images/kit-castanho-6500.jpeg", "alt": "Kit castanho completo", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -205,6 +227,7 @@
       "preco": "5.000,00 Kz",
       "descricao": "Conjunto castanho com peças essenciais para o dia a dia.",
       "imagem": "/images/kit-castanho-5000.jpeg",
+      "images": [{ "url": "/images/kit-castanho-5000.jpeg", "alt": "Kit castanho clássico", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -214,6 +237,7 @@
       "preco": "4.500,00 Kz",
       "descricao": "Kit rosa suave com tamanhos variados de laços.",
       "imagem": "/images/kit-rosa-claro-4500.jpeg",
+      "images": [{ "url": "/images/kit-rosa-claro-4500.jpeg", "alt": "Kit rosa claro", "order": 0, "isCover": true }],
       "status": "disponivel"
     },
     {
@@ -223,6 +247,7 @@
       "preco": "5.000,00 Kz",
       "descricao": "Conjunto bege neutro para combinar com vários looks.",
       "imagem": "/images/kit-bege-5000.jpeg",
+      "images": [{ "url": "/images/kit-bege-5000.jpeg", "alt": "Kit bege", "order": 0, "isCover": true }],
       "status": "disponivel"
     }
   ]

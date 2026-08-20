@@ -6,10 +6,16 @@ import Busboy from 'busboy';
 const DATA_FILE = path.join(process.cwd(), 'src', 'data', 'products.json');
 const IMAGES_DIR = path.join(process.cwd(), 'public', 'images');
 
-function json(status, payload) {
+const SESSION_COOKIE = 'admin_session';
+const SESSION_TTL_SECONDS = 15 * 60;
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const loginAttempts = new Map();
+
+function json(status, payload, extraHeaders = {}) {
   return {
     statusCode: status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
     body: JSON.stringify(payload),
   };
 }
@@ -29,11 +35,67 @@ function getAdminPassword() {
 }
 
 function getTokenSecret() {
-  return process.env.ADMIN_PANEL_TOKEN_SECRET || 'dev-secret';
+  return (process.env.ADMIN_PANEL_TOKEN_SECRET || '').trim();
 }
 
-function tokenForPassword(password) {
-  return crypto.createHmac('sha256', getTokenSecret()).update(password).digest('hex');
+function getClientIp(event) {
+  const forwarded = event.headers?.['x-forwarded-for'] || event.headers?.['X-Forwarded-For'] || '';
+  return String(forwarded).split(',')[0].trim() || 'unknown';
+}
+
+function tooManyLoginAttempts(ip) {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now >= entry.resetAt) return false;
+  return entry.count >= LOGIN_MAX_ATTEMPTS;
+}
+
+function registerFailedLogin(ip) {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return;
+  }
+  entry.count += 1;
+}
+
+function clearLoginAttempts(ip) {
+  loginAttempts.delete(ip);
+}
+
+function sign(value) {
+  return crypto.createHmac('sha256', getTokenSecret()).update(value).digest('base64url');
+}
+
+function createSession() {
+  const payload = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS, nonce: crypto.randomBytes(24).toString('base64url') })).toString('base64url');
+  return `${payload}.${sign(payload)}`;
+}
+
+function sessionIsValid(token) {
+  if (!token || !token.includes('.')) return false;
+  const [payload, signature] = token.split('.');
+  const expected = sign(payload);
+  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
+  try {
+    return Number(JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')).exp) > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+function getCookie(event, name) {
+  const cookies = String(event.headers?.cookie || event.headers?.Cookie || '').split(';');
+  const prefix = `${name}=`;
+  const item = cookies.map((value) => value.trim()).find((value) => value.startsWith(prefix));
+  return item ? decodeURIComponent(item.slice(prefix.length)) : '';
+}
+
+function sessionCookie(token, event, maxAge = SESSION_TTL_SECONDS) {
+  const forwardedProto = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'] || '';
+  const secure = String(forwardedProto).split(',')[0] === 'https' || String(event.rawUrl || '').startsWith('https://');
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
 }
 
 function sanitizeFilename(name) {
@@ -53,20 +115,20 @@ async function parseMultipart(event) {
     const bb = Busboy({
       headers: { 'content-type': contentType },
       limits: {
-        files: 1,
+        files: 12,
         fileSize: 8 * 1024 * 1024, // 8MB (ajustável)
       },
     });
 
     const fields = {};
-    let file = null;
+    const files = [];
 
     bb.on('field', (name, val) => {
       fields[name] = val;
     });
 
     bb.on('file', (name, stream, filename, encoding, mimetype) => {
-      if (name !== 'imagem') {
+      if (name !== 'images') {
         // descarta campos inesperados
         stream.resume();
         return;
@@ -81,13 +143,13 @@ async function parseMultipart(event) {
 
       stream.on('end', () => {
         const buf = Buffer.concat(chunks);
-        file = { name, filename: safeName, mimetype, buffer: buf };
+        files.push({ name, filename: safeName, mimetype, buffer: buf });
       });
     });
 
     bb.on('error', reject);
 
-    bb.on('finish', () => resolve({ fields, file }));
+    bb.on('finish', () => resolve({ fields, files }));
     bb.end(event.body || Buffer.alloc(0), event.isBase64Encoded);
   });
 }
@@ -108,32 +170,35 @@ export async function handler(event, context) {
     const action = url.searchParams.get('action');
 
     const adminPassword = getAdminPassword();
-    if (!adminPassword) {
-      return json(500, { ok: false, error: 'ADMIN_PANEL_PASSWORD não configurado no Netlify.' });
+    const tokenSecret = getTokenSecret();
+    if (!adminPassword || !tokenSecret) {
+      return json(500, { ok: false, error: 'ADMIN_PANEL_PASSWORD e ADMIN_PANEL_TOKEN_SECRET devem estar configurados no Netlify.' });
     }
+
+    if (action === 'logout') return json(200, { ok: true }, { 'Set-Cookie': sessionCookie('', event, 0) });
 
     // LOGIN (JSON)
     if (action === 'login') {
+      const ip = getClientIp(event);
+      if (tooManyLoginAttempts(ip)) return json(429, { ok: false, error: 'Demasiadas tentativas. Tente novamente dentro de 15 minutos.' });
       const body = event.body ? JSON.parse(event.body) : {};
       const password = body.password || '';
       if (!password || password !== adminPassword) {
+        registerFailedLogin(ip);
         return json(401, { ok: false, error: 'Senha inválida.' });
       }
-      const generatedToken = tokenForPassword(password);
-      return json(200, { ok: true, token: generatedToken });
+      clearLoginAttempts(ip);
+      return json(200, { ok: true }, { 'Set-Cookie': sessionCookie(createSession(), event) });
     }
 
-    // Autenticação (JSON ou multipart)
-    let token = '';
+    // Autenticação por cookie HttpOnly (JSON ou multipart)
+    const token = getCookie(event, SESSION_COOKIE);
+    if (!sessionIsValid(token)) return json(401, { ok: false, error: 'Não autenticado.' });
+
     if (isMultipart(event)) {
       const parsed = await parseMultipart(event);
-      token = parsed.fields?.token || '';
       // Reusa parsed para save/list
       if (action === 'list') {
-        const expected = tokenForPassword(adminPassword);
-        if (!token || token !== expected) {
-          return json(401, { ok: false, error: 'Não autenticado.' });
-        }
         const products = await readProducts();
         return json(200, { ok: true, products });
       }
@@ -142,16 +207,6 @@ export async function handler(event, context) {
         // continua abaixo com parsed (mantemos parsed local)
         event._parsedMultipart = parsed;
       }
-    }
-
-    if (!event._parsedMultipart) {
-      const body = event.body ? JSON.parse(event.body) : {};
-      token = body.token || '';
-    }
-
-    const expected = tokenForPassword(adminPassword);
-    if (!token || token !== expected) {
-      return json(401, { ok: false, error: 'Não autenticado.' });
     }
 
     if (action === 'list') {
@@ -166,11 +221,11 @@ export async function handler(event, context) {
       if (isMultipart(event)) {
         const parsed = event._parsedMultipart || (await parseMultipart(event));
         fields = parsed.fields || {};
-        imageValue = parsed.file; // {buffer, filename, mimetype}
+        imageValue = parsed.files;
       } else {
         const body = event.body ? JSON.parse(event.body) : {};
         fields = body;
-        imageValue = fields.imagem; // string URL/path
+        imageValue = fields.images; // JSON gallery
       }
 
       const required = ['id', 'categoria', 'nome', 'preco', 'descricao', 'status'];
@@ -186,30 +241,29 @@ export async function handler(event, context) {
         return json(400, { ok: false, error: 'ID inválido.' });
       }
 
-      let imagem = null;
+      let images = [];
 
       if (isMultipart(event)) {
-        if (!imageValue || !Buffer.isBuffer(imageValue.buffer)) {
+        if (!Array.isArray(imageValue) || !imageValue.length) {
           return json(400, { ok: false, error: 'Imagem obrigatória (upload)' });
         }
 
         await ensureImagesDir();
 
-        const ext = path.extname(imageValue.filename) || '';
-        const base = path.basename(imageValue.filename, ext);
-        const nonce = crypto.randomBytes(6).toString('hex');
-        const filename = sanitizeFilename(`${base}-${nonce}${ext}`);
-
-        const outPath = path.join(IMAGES_DIR, filename);
-        await fs.writeFile(outPath, imageValue.buffer);
-
-        imagem = `/images/${filename}`;
+        for (const image of imageValue) {
+          if (!String(image.mimetype || '').startsWith('image/')) return json(400, { ok: false, error: 'Only image files are allowed.' });
+          const ext = path.extname(image.filename) || '';
+          const base = path.basename(image.filename, ext);
+          const filename = sanitizeFilename(`${base}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+          await fs.writeFile(path.join(IMAGES_DIR, filename), image.buffer);
+          images.push({ url: `/images/${filename}`, alt: `Fotografia do produto: ${fields.nome}`, order: images.length, isCover: images.length === 0 });
+        }
       } else {
-        const imagemStr = String(fields.imagem || '').trim();
+        const imagemStr = String(fields.images || '').trim();
         if (!imagemStr) {
           return json(400, { ok: false, error: 'Campo obrigatório ausente: imagem' });
         }
-        imagem = imagemStr;
+        images = JSON.parse(imagemStr);
       }
 
       const normalized = {
@@ -218,7 +272,8 @@ export async function handler(event, context) {
         nome: String(fields.nome),
         preco: String(fields.preco),
         descricao: String(fields.descricao),
-        imagem,
+        imagem: images.find((image) => image.isCover)?.url || images[0].url,
+        images: images.map((image, index) => ({ url: String(image.url), alt: String(image.alt), order: Number(image.order) || index, isCover: Boolean(image.isCover) })),
         status: fields.status,
       };
 

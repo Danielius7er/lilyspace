@@ -1,86 +1,36 @@
 ---
 import WhatsAppButton from "./WhatsAppButton.astro";
 import { site } from "../site.config";
+import { categoryLabel, discount, productCover, productImages, productSlug, type Product } from "../lib/products";
 
-export interface Product {
-  id: number;
-  categoria?: "catalogo" | "kit";
-  status?: "disponivel" | "esgotado";
-  nome: string;
-  preco: string;
-  descricao: string;
-  imagem: string;
-  videoUrl?: string;
-}
-
-interface Props {
-  product: Product;
-}
-
+interface Props { product: Product; }
 const { product } = Astro.props;
-const { nome, preco, descricao, imagem, videoUrl, status = "disponivel" } = product;
-const esgotado = status === "esgotado";
+const esgotado = product.status === "esgotado";
+const percentDiscount = discount(product);
+const cover = productCover(product);
+const imageCount = productImages(product).length;
+const badge = esgotado ? "Esgotado" : product.lancamento ? "Novo" : product.mais_vendido ? "Mais vendido" : percentDiscount ? "Promoção" : undefined;
 ---
 
-<article
-  class="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-burgundy/10 bg-white shadow-soft ring-1 ring-black/[0.03] transition duration-300 hover:-translate-y-0.5 hover:shadow-card"
->
-  <div class="relative aspect-[4/3] overflow-hidden bg-brand-blush/50">
-    <img
-      src={imagem}
-      alt={`Fotografia do produto: ${nome}`}
-      width="800"
-      height="600"
-      loading="lazy"
-      decoding="async"
-      class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-    />
-    <div
-      class="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition group-hover:opacity-100"
-      aria-hidden="true"
-    />
-  </div>
+<article class="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-burgundy/10 bg-white shadow-soft ring-1 ring-black/[0.03] transition duration-300 hover:-translate-y-0.5 hover:shadow-card">
+  <a href={`/produtos/${productSlug(product)}`} class="relative aspect-[4/3] overflow-hidden bg-brand-blush/50" aria-label={`Ver ${product.nome}`}>
+    <img src={cover} alt={`Fotografia do produto: ${product.nome}`} width="800" height="600" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+    {badge && <span class="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-brand-burgundy shadow-sm">{badge}</span>}
+    {product.status === "sob_encomenda" && <span class="absolute left-3 top-3 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-sm">Sob encomenda</span>}
+    {percentDiscount && <span class="absolute right-3 top-3 rounded-full bg-brand-rose px-2.5 py-1 text-xs font-bold text-white">-{percentDiscount}%</span>}
+    {imageCount > 1 && <span class="absolute bottom-3 right-3 rounded-full bg-brand-burgundy/90 px-2.5 py-1 text-xs font-semibold text-white">{imageCount} fotos</span>}
+  </a>
   <div class="flex flex-1 flex-col gap-3 p-4 sm:gap-4 sm:p-5">
     <div>
-      {
-        esgotado ? (
-          <span class="mb-2 inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
-            Esgotado
-          </span>
-        ) : null
-      }
-      <h2 class="font-display text-lg font-semibold text-brand-burgundy sm:text-xl">
-        {nome}
-      </h2>
-      <p
-        class="mt-1 font-display text-xl font-semibold text-brand-rose sm:text-2xl"
-        aria-label={`Preço: ${preco}`}
-      >
-        {preco}
-      </p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-ink/55">{categoryLabel(product)}</p>
+      <h2 class="mt-1 font-display text-lg font-semibold text-brand-burgundy sm:text-xl"><a href={`/produtos/${productSlug(product)}`} class="hover:text-brand-rose">{product.nome}</a></h2>
+      <div class="mt-2 flex items-baseline gap-2">
+        <p class="font-display text-xl font-semibold text-brand-rose sm:text-2xl" aria-label={`Preço: ${product.preco}`}>{product.preco}</p>
+        {product.preco_antigo && <del class="text-sm text-brand-ink/50">{product.preco_antigo}</del>}
+      </div>
     </div>
-    <p class="flex-1 text-sm leading-relaxed text-brand-ink/75">
-      {descricao}
-    </p>
-    {
-      videoUrl ? (
-        <p>
-          <a
-            href={videoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm font-medium text-brand-burgundy underline decoration-brand-rose/50 underline-offset-4 hover:text-brand-rose"
-          >
-            Ver vídeo do produto
-          </a>
-        </p>
-      ) : null
-    }
-    <WhatsAppButton
-      nome={nome}
-      preco={preco}
-      phoneDigits={site.whatsappE164}
-      disabled={esgotado}
-    />
+    <p class="flex-1 text-sm leading-relaxed text-brand-ink/75">{product.descricao}</p>
+    {product.videoUrl && <a href={product.videoUrl} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-brand-burgundy underline decoration-brand-rose/50 underline-offset-4 hover:text-brand-rose">Ver vídeo do produto</a>}
+    <WhatsAppButton nome={product.nome} preco={product.preco} phoneDigits={site.whatsappE164} disabled={esgotado} />
   </div>
 </article>

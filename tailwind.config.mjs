@@ -4,6 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
+        bg: "var(--color-bg)",
+        text: "var(--color-text)",
+        muted: "var(--color-muted)",
+        border: "var(--color-border)",
+        accent: "var(--color-accent)",
         brand: {
           rose: "#e879a9",
           purple: "#7c3aed",

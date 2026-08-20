@@ -1,0 +1,24 @@
+---
+import type { ProductImage } from "../lib/products";
+interface Props { images: ProductImage[]; productName: string; }
+const { images, productName } = Astro.props;
+---
+
+<div class="space-y-3" data-gallery>
+  <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-brand-blush/50 shadow-soft">
+    {images.map((image, index) => <img data-gallery-image src={image.url} alt={image.alt} width="900" height="700" loading={index === 0 ? "eager" : "lazy"} class:list={["absolute inset-0 h-full w-full object-cover transition-opacity duration-300", index ? "opacity-0" : "opacity-100"]} />)}
+    {images.length > 1 && <><button data-gallery-prev type="button" aria-label="Foto anterior" class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-brand-burgundy shadow-sm">‹</button><button data-gallery-next type="button" aria-label="Próxima foto" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-brand-burgundy shadow-sm">›</button></>}
+  </div>
+  {images.length > 1 && <div class="flex gap-2 overflow-x-auto pb-1" aria-label={`Galeria de ${productName}`}>{images.map((image, index) => <button data-gallery-thumb={index} type="button" aria-label={`Ver foto ${index + 1}`} class:list={["h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2", index ? "border-transparent" : "border-brand-burgundy"]}><img src={image.url} alt="" width="160" height="120" loading="lazy" class="h-full w-full object-cover" /></button>)}</div>}
+</div>
+
+<script>
+  document.querySelectorAll("[data-gallery]").forEach((gallery) => {
+    const images = [...gallery.querySelectorAll("[data-gallery-image]")];
+    const thumbs = [...gallery.querySelectorAll("[data-gallery-thumb]")]; let active = 0;
+    const show = (next) => { active = (next + images.length) % images.length; images.forEach((image, index) => image.classList.toggle("opacity-0", index !== active)); images.forEach((image, index) => image.classList.toggle("opacity-100", index === active)); thumbs.forEach((thumb, index) => thumb.classList.toggle("border-brand-burgundy", index === active)); thumbs.forEach((thumb, index) => thumb.classList.toggle("border-transparent", index !== active)); };
+    gallery.querySelector("[data-gallery-prev]")?.addEventListener("click", () => show(active - 1));
+    gallery.querySelector("[data-gallery-next]")?.addEventListener("click", () => show(active + 1));
+    thumbs.forEach((thumb, index) => thumb.addEventListener("click", () => show(index)));
+  });
+</script>

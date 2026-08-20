@@ -24,7 +24,10 @@ import { site } from "../../site.config";
     if (search) visible = visible.filter((p) => p.nome.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
     if (category) visible = visible.filter((p) => p.category === category); if (status) visible = visible.filter((p) => (p.status || "disponivel") === status); if (price) { const [min, max] = price.split("-").map(Number); visible = visible.filter((p) => p.price >= min && p.price <= max); }
     visible.sort((a,b) => sort === "low" ? a.price-b.price : sort === "high" ? b.price-a.price : sort === "name" ? a.nome.localeCompare(b.nome) : b.id-a.id);
-    const cards = Array.from(list.querySelectorAll("li")); cards.forEach((card) => { const name = card.querySelector("h2")?.textContent; card.classList.toggle("hidden", !visible.some((p) => p.nome === name)); });
+    const grid = list.querySelector("ul"); const cards = Array.from(list.querySelectorAll("li"));
+    const visibleIds = new Set(visible.map((p) => String(p.id)));
+    cards.forEach((card) => card.classList.toggle("hidden", !visibleIds.has(card.dataset.productId || "")));
+    visible.forEach((product) => { const card = list.querySelector(`[data-product-id="${product.id}"]`); if (card && grid) grid.appendChild(card); });
     count.textContent = `${visible.length} produto${visible.length === 1 ? "" : "s"} encontrado${visible.length === 1 ? "" : "s"}`; empty.classList.toggle("hidden", visible.length !== 0);
-  } controls.forEach((control) => control.addEventListener(control.matches("input") ? "input" : "change", applyFilters));
+  } controls.forEach((control) => control.addEventListener(control.matches("input") ? "input" : "change", applyFilters)); applyFilters();
 </script></MainLayout>

@@ -10,7 +10,7 @@ Uma rota serverless que:
 2. Environment variables
 3. Adicione:
    - `ADMIN_PANEL_PASSWORD` = a senha que a dona/usuário vai usar no painel
-   - (opcional) `ADMIN_PANEL_TOKEN_SECRET` = segredo para gerar token
+   - `ADMIN_PANEL_TOKEN_SECRET` = segredo longo e aleatório para assinar sessões (obrigatório)
 
 ## Uso
 - Abra o painel em `https://SEU_DOMINIO/admin`

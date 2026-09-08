@@ -13,5 +13,5 @@ export const site = {
    * URL final do site (sem barra no fim). Atualizar após o deploy — afeta
    * canonical, Open Graph e partilhas no WhatsApp.
    */
-  canonicalUrl: "https://exemplo.pt",
+  canonicalUrl: "https://lilyspaces.netlify.app",
 } as const;

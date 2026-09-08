@@ -1,5 +1,6 @@
 ---
-import MainLayout from "../layouts/MainLayout.astro"; import Header from "../components/Header.astro"; import ProductGrid from "../components/ProductGrid.astro"; import FloatingWhatsApp from "../components/FloatingWhatsApp.astro"; import { products } from "../lib/products"; import { site } from "../site.config";
+import MainLayout from "../layouts/MainLayout.astro"; import Header from "../components/Header.astro"; import ProductGrid from "../components/ProductGrid.astro"; import FloatingWhatsApp from "../components/FloatingWhatsApp.astro"; import { getProducts } from "../lib/products"; import { site } from "../site.config";
+const products = await getProducts();
 const kits = products.filter((product) => product.categoria === "kit");
 ---
 <MainLayout title={`Kits e combos — ${site.name}`}><Header /><main id="conteudo-principal" class="mx-auto max-w-6xl px-4 py-10 sm:px-6"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-brand-burgundy">Para combinar</p><h1 class="mt-2 font-display text-4xl font-semibold text-brand-burgundy">Kits e combos</h1><p class="mt-3 text-brand-ink/75">Conjuntos pensados para tornar a sua escolha mais simples.</p><div class="mt-8"><ProductGrid products={kits} /></div></main><FloatingWhatsApp /></MainLayout>

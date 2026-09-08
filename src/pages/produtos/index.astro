@@ -3,8 +3,10 @@ import MainLayout from "../../layouts/MainLayout.astro";
 import Header from "../../components/Header.astro";
 import ProductGrid from "../../components/ProductGrid.astro";
 import FloatingWhatsApp from "../../components/FloatingWhatsApp.astro";
-import { categories, categorySlug, priceNumber, products } from "../../lib/products";
+import { categorySlug, getCategories, getProducts, priceNumber } from "../../lib/products";
 import { site } from "../../site.config";
+const products = await getProducts();
+const categories = getCategories(products);
 ---
 <MainLayout title={`Produtos — ${site.name}`}><Header /><main id="conteudo-principal" class="mx-auto max-w-6xl px-4 py-10 sm:px-6"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-brand-burgundy">Catálogo</p><h1 class="mt-2 font-display text-4xl font-semibold text-brand-burgundy">Todos os produtos</h1><p class="mt-3 max-w-2xl text-brand-ink/75">Use os filtros para encontrar o que procura. A encomenda é confirmada diretamente pelo WhatsApp.</p>
   <div class="mt-8 grid gap-3 rounded-2xl border border-brand-burgundy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">

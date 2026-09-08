@@ -1,15 +1,15 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import crypto from 'node:crypto';
+import path from 'node:path';
 import Busboy from 'busboy';
-
-const DATA_FILE = path.join(process.cwd(), 'src', 'data', 'products.json');
-const IMAGES_DIR = path.join(process.cwd(), 'public', 'images');
+import { createClient } from '@supabase/supabase-js';
 
 const SESSION_COOKIE = 'admin_session';
 const SESSION_TTL_SECONDS = 15 * 60;
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const BUCKET = 'product-images';
+const MAX_FILES = 12;
+const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const loginAttempts = new Map();
 
 function json(status, payload, extraHeaders = {}) {
@@ -20,22 +20,21 @@ function json(status, payload, extraHeaders = {}) {
   };
 }
 
-async function readProducts() {
-  const raw = await fs.readFile(DATA_FILE, 'utf8');
-  const data = JSON.parse(raw);
-  return data.products || [];
+function env(name) {
+  return (process.env[name] || '').trim();
 }
 
-async function writeProducts(products) {
-  await fs.writeFile(DATA_FILE, JSON.stringify({ products }, null, 2), 'utf8');
-}
-
-function getAdminPassword() {
-  return (process.env.ADMIN_PANEL_PASSWORD || '').trim();
-}
-
-function getTokenSecret() {
-  return (process.env.ADMIN_PANEL_TOKEN_SECRET || '').trim();
+function guardConfig() {
+  const missing = [
+    'ADMIN_PANEL_PASSWORD',
+    'ADMIN_PANEL_TOKEN_SECRET',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+  ].filter((name) => !env(name));
+  if (missing.length) {
+    return `Faltam variáveis de ambiente no Netlify: ${missing.join(', ')}`;
+  }
+  return null;
 }
 
 function getClientIp(event) {
@@ -65,7 +64,7 @@ function clearLoginAttempts(ip) {
 }
 
 function sign(value) {
-  return crypto.createHmac('sha256', getTokenSecret()).update(value).digest('base64url');
+  return crypto.createHmac('sha256', env('ADMIN_PANEL_TOKEN_SECRET')).update(value).digest('base64url');
 }
 
 function createSession() {
@@ -98,26 +97,35 @@ function sessionCookie(token, event, maxAge = SESSION_TTL_SECONDS) {
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
 }
 
-function sanitizeFilename(name) {
-  const base = path.basename(String(name || ''));
-  const safe = base
-    .replaceAll('..', '')
-    .replace(/[^a-zA-Z0-9._-]/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 120);
-  return safe || 'imagem';
+function priceNumber(value) {
+  return Number(String(value).replace(/[^\d,]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function slugify(value) {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function publicUrl(storagePath) {
+  return `${env('SUPABASE_URL')}/storage/v1/object/public/${BUCKET}/${storagePath}`;
+}
+
+function deriveStoragePath(imageUrl) {
+  const marker = `/${BUCKET}/`;
+  const idx = String(imageUrl || '').indexOf(marker);
+  return idx >= 0 ? String(imageUrl).slice(idx + marker.length) : null;
 }
 
 async function parseMultipart(event) {
   return new Promise((resolve, reject) => {
-    const headers = event.headers || {};
-    const contentType = headers['content-type'] || headers['Content-Type'] || '';
+    const contentType = event.headers?.['content-type'] || event.headers?.['Content-Type'] || '';
     const bb = Busboy({
       headers: { 'content-type': contentType },
-      limits: {
-        files: 12,
-        fileSize: 8 * 1024 * 1024, // 8MB (ajustável)
-      },
+      limits: { files: MAX_FILES, fileSize: MAX_FILE_BYTES },
     });
 
     const fields = {};
@@ -127,63 +135,93 @@ async function parseMultipart(event) {
       fields[name] = val;
     });
 
-    bb.on('file', (name, stream, filename, encoding, mimetype) => {
+    bb.on('file', (name, stream) => {
       if (name !== 'images') {
-        // descarta campos inesperados
         stream.resume();
         return;
       }
-
-      const safeName = sanitizeFilename(filename);
       const chunks = [];
+      let truncated = false;
       stream.on('data', (d) => chunks.push(d));
-      stream.on('limit', () => {
-        // stream truncated
-      });
-
+      stream.on('limit', () => { truncated = true; });
       stream.on('end', () => {
-        const buf = Buffer.concat(chunks);
-        files.push({ name, filename: safeName, mimetype, buffer: buf });
+        if (truncated) return;
+        files.push({ buffer: Buffer.concat(chunks) });
       });
     });
 
     bb.on('error', reject);
-
     bb.on('finish', () => resolve({ fields, files }));
-    bb.end(event.body || Buffer.alloc(0), event.isBase64Encoded);
+    const body = event.isBase64Encoded ? Buffer.from(String(event.body || ''), 'base64') : (event.body || Buffer.alloc(0));
+    bb.end(body);
   });
 }
 
-function isMultipart(event) {
-  const headers = event.headers || {};
-  const ct = headers['content-type'] || headers['Content-Type'] || '';
-  return String(ct).includes('multipart/form-data');
+function detectImageType(buffer) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { ext: '.jpg', mime: 'image/jpeg' };
+  if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47 && buffer[4] === 0x0d && buffer[5] === 0x0a && buffer[6] === 0x1a && buffer[7] === 0x0a) return { ext: '.png', mime: 'image/png' };
+  if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return { ext: '.webp', mime: 'image/webp' };
+  return null;
 }
 
-async function ensureImagesDir() {
-  await fs.mkdir(IMAGES_DIR, { recursive: true });
+function toAdminProduct(row) {
+  const imagens = Array.isArray(row.imagens) ? row.imagens : [];
+  const images = [...imagens]
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((img) => ({
+      url: img.public_url || publicUrl(img.storage_path),
+      storagePath: img.storage_path || null,
+      alt: img.alt_text || '',
+      order: img.sort_order ?? 0,
+      isCover: Boolean(img.is_cover),
+    }));
+  const cover = images.find((img) => img.isCover) || images[0];
+  return {
+    id: row.id,
+    slug: row.slug,
+    categoria: row.categoria,
+    nome: row.nome,
+    preco: row.preco_texto,
+    descricao: row.descricao,
+    status: row.status,
+    destaque: Boolean(row.destaque),
+    lancamento: Boolean(row.lancamento),
+    mais_vendido: Boolean(row.mais_vendido),
+    imagem: cover?.url || '',
+    images,
+  };
+}
+
+function parseJsonField(fields, name) {
+  const raw = String(fields[name] || '').trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return null;
+  }
 }
 
 export async function handler(event, context) {
   try {
+    const configError = guardConfig();
+    if (configError) {
+      console.error(configError);
+      return json(500, { ok: false, error: 'Configuração do servidor incompleta.' });
+    }
+
+    const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
     const url = new URL(event.rawUrl || event.path || '/', 'https://local');
     const action = url.searchParams.get('action');
 
-    const adminPassword = getAdminPassword();
-    const tokenSecret = getTokenSecret();
-    if (!adminPassword || !tokenSecret) {
-      return json(500, { ok: false, error: 'ADMIN_PANEL_PASSWORD e ADMIN_PANEL_TOKEN_SECRET devem estar configurados no Netlify.' });
-    }
-
     if (action === 'logout') return json(200, { ok: true }, { 'Set-Cookie': sessionCookie('', event, 0) });
 
-    // LOGIN (JSON)
     if (action === 'login') {
       const ip = getClientIp(event);
       if (tooManyLoginAttempts(ip)) return json(429, { ok: false, error: 'Demasiadas tentativas. Tente novamente dentro de 15 minutos.' });
       const body = event.body ? JSON.parse(event.body) : {};
-      const password = body.password || '';
-      if (!password || password !== adminPassword) {
+      if (!body.password || body.password !== env('ADMIN_PANEL_PASSWORD')) {
         registerFailedLogin(ip);
         return json(401, { ok: false, error: 'Senha inválida.' });
       }
@@ -191,107 +229,140 @@ export async function handler(event, context) {
       return json(200, { ok: true }, { 'Set-Cookie': sessionCookie(createSession(), event) });
     }
 
-    // Autenticação por cookie HttpOnly (JSON ou multipart)
     const token = getCookie(event, SESSION_COOKIE);
     if (!sessionIsValid(token)) return json(401, { ok: false, error: 'Não autenticado.' });
 
     if (isMultipart(event)) {
       const parsed = await parseMultipart(event);
-      // Reusa parsed para save/list
-      if (action === 'list') {
-        const products = await readProducts();
-        return json(200, { ok: true, products });
-      }
-
-      if (action === 'save') {
-        // continua abaixo com parsed (mantemos parsed local)
-        event._parsedMultipart = parsed;
-      }
+      event._parsed = parsed;
     }
 
     if (action === 'list') {
-      const products = await readProducts();
-      return json(200, { ok: true, products });
+      const { data, error } = await admin.from('produtosloja').select('*').order('id', { ascending: true });
+      if (error) throw new Error(`list produtosloja: ${error.message}`);
+      return json(200, { ok: true, products: (data || []).map(toAdminProduct) });
     }
 
     if (action === 'save') {
-      let fields = null;
-      let imageValue = null;
-
-      if (isMultipart(event)) {
-        const parsed = event._parsedMultipart || (await parseMultipart(event));
-        fields = parsed.fields || {};
-        imageValue = parsed.files;
-      } else {
-        const body = event.body ? JSON.parse(event.body) : {};
-        fields = body;
-        imageValue = fields.images; // JSON gallery
-      }
+      const multipart = isMultipart(event);
+      const parsed = event._parsed || (multipart ? await parseMultipart(event) : null);
+      const fields = multipart ? parsed.fields : (event.body ? JSON.parse(event.body) : {});
+      const newFiles = multipart ? parsed.files : [];
 
       const required = ['id', 'categoria', 'nome', 'preco', 'descricao', 'status'];
       for (const k of required) {
-        if (fields[k] === undefined || fields[k] === null || fields[k] === '') {
+        if (fields[k] === undefined || fields[k] === null || String(fields[k]).trim() === '') {
           return json(400, { ok: false, error: `Campo obrigatório ausente: ${k}` });
         }
       }
 
-      const products = await readProducts();
       const id = Number(fields.id);
-      if (!Number.isFinite(id) || id < 1) {
+      if (!Number.isFinite(id) || id < 1 || !Number.isInteger(id)) {
         return json(400, { ok: false, error: 'ID inválido.' });
       }
 
-      let images = [];
+      const categoria = String(fields.categoria);
+      const status = String(fields.status);
+      const nome = String(fields.nome).slice(0, 160);
+      const descricao = String(fields.descricao).slice(0, 5000);
+      const precoTexto = String(fields.preco).slice(0, 80);
 
-      if (isMultipart(event)) {
-        if (!Array.isArray(imageValue) || !imageValue.length) {
-          return json(400, { ok: false, error: 'Imagem obrigatória (upload)' });
-        }
+      if (!['catalogo', 'kit'].includes(categoria)) return json(400, { ok: false, error: 'Categoria inválida.' });
+      if (!['disponivel', 'esgotado'].includes(status)) return json(400, { ok: false, error: 'Estado inválido.' });
 
-        await ensureImagesDir();
+      const { data: existingRow, error: rowError } = await admin
+        .from('produtosloja')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (rowError) throw new Error(`buscar produto ${id}: ${rowError.message}`);
 
-        for (const image of imageValue) {
-          if (!String(image.mimetype || '').startsWith('image/')) return json(400, { ok: false, error: 'Only image files are allowed.' });
-          const ext = path.extname(image.filename) || '';
-          const base = path.basename(image.filename, ext);
-          const filename = sanitizeFilename(`${base}-${crypto.randomBytes(6).toString('hex')}${ext}`);
-          await fs.writeFile(path.join(IMAGES_DIR, filename), image.buffer);
-          images.push({ url: `/images/${filename}`, alt: `Fotografia do produto: ${fields.nome}`, order: images.length, isCover: images.length === 0 });
-        }
-      } else {
-        const imagemStr = String(fields.images || '').trim();
-        if (!imagemStr) {
-          return json(400, { ok: false, error: 'Campo obrigatório ausente: imagem' });
-        }
-        images = JSON.parse(imagemStr);
+      const existingImages = parseJsonField(fields, 'existingImages');
+      if (existingImages === null) return json(400, { ok: false, error: 'existingImages em formato inválido.' });
+      const removeImages = parseJsonField(fields, 'removeImages');
+      if (removeImages === null) return json(400, { ok: false, error: 'removeImages em formato inválido.' });
+
+      const kept = [];
+      const removedKeys = new Set();
+      for (const entry of existingImages) {
+        const storagePath = entry.storagePath || deriveStoragePath(entry.url);
+        if (storagePath) removedKeys.add(storagePath);
+        kept.push({
+          storage_path: storagePath,
+          public_url: storagePath ? null : String(entry.url || ''),
+          alt_text: String(entry.alt ?? `Fotografia do produto: ${nome}`),
+          sort_order: Number(entry.order) || kept.length,
+          is_cover: Boolean(entry.isCover),
+        });
       }
 
-      const normalized = {
+      for (const entry of removeImages) {
+        const storagePath = entry.storagePath || deriveStoragePath(entry.url);
+        if (storagePath) removedKeys.add(storagePath);
+      }
+
+      for (const file of newFiles) {
+        const type = detectImageType(file.buffer);
+        if (!type) return json(400, { ok: false, error: 'Só são aceites ficheiros de imagem reais (JPG, PNG ou WEBP).' });
+        const storagePath = `products/${id}/${crypto.randomUUID()}${type.ext}`;
+        const { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, file.buffer, {
+          contentType: type.mime,
+          upsert: false,
+        });
+        if (uploadError) throw new Error(`upload ${storagePath}: ${uploadError.message}`);
+        kept.push({
+          storage_path: storagePath,
+          public_url: null,
+          alt_text: `Fotografia do produto: ${nome}`,
+          sort_order: Math.max(0, ...kept.map((img) => img.sort_order)) + 1,
+          is_cover: false,
+        });
+      }
+
+      if (!kept.length) {
+        return json(400, { ok: false, error: 'O produto precisa de pelo menos uma imagem.' });
+      }
+
+      if (!kept.some((img) => img.is_cover)) kept[0].is_cover = true;
+
+      if (removedKeys.size) {
+        const storagePaths = [...removedKeys].filter(Boolean);
+        if (storagePaths.length) {
+          await admin.storage.from(BUCKET).remove(storagePaths);
+        }
+      }
+
+      const slug = slugify(nome);
+      const row = {
         id,
-        categoria: fields.categoria,
-        nome: String(fields.nome),
-        preco: String(fields.preco),
-        descricao: String(fields.descricao),
-        imagem: images.find((image) => image.isCover)?.url || images[0].url,
-        images: images.map((image, index) => ({ url: String(image.url), alt: String(image.alt), order: Number(image.order) || index, isCover: Boolean(image.isCover) })),
-        status: fields.status,
+        slug,
+        categoria,
+        nome,
+        preco_kz: priceNumber(precoTexto),
+        preco_texto: precoTexto,
+        preco_antigo_kz: existingRow?.preco_antigo_kz ?? null,
+        descricao,
+        status,
+        destaque: existingRow?.destaque ?? false,
+        lancamento: existingRow?.lancamento ?? false,
+        mais_vendido: existingRow?.mais_vendido ?? false,
+        imagens: kept,
       };
 
-      if (fields.videoUrl) normalized.videoUrl = String(fields.videoUrl);
+      const { error: upsertError } = await admin.from('produtosloja').upsert(row, { onConflict: 'id' });
+      if (upsertError) throw new Error(`upsert ${id}: ${upsertError.message}`);
 
-      const idx = products.findIndex((p) => Number(p.id) === id);
-      if (idx >= 0) {
-        products[idx] = { ...products[idx], ...normalized };
-      } else {
-        products.push(normalized);
-      }
-
-      await writeProducts(products);
       return json(200, { ok: true });
     }
 
     return json(400, { ok: false, error: 'Ação inválida.' });
   } catch (e) {
-    return json(500, { ok: false, error: e?.message || 'Erro interno.' });
+    console.error('admin-products:', e);
+    return json(500, { ok: false, error: 'Erro interno do servidor.' });
   }
+}
+
+function isMultipart(event) {
+  const ct = event.headers?.['content-type'] || event.headers?.['Content-Type'] || '';
+  return String(ct).includes('multipart/form-data');
 }

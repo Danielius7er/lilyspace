@@ -5,10 +5,14 @@ import ProductGrid from "../../components/ProductGrid.astro";
 import ProductGallery from "../../components/ProductGallery.astro";
 import WhatsAppButton from "../../components/WhatsAppButton.astro";
 import FloatingWhatsApp from "../../components/FloatingWhatsApp.astro";
-import { categoryLabel, categorySlug, discount, productCover, productImages, productSlug, products } from "../../lib/products";
+import { categoryLabel, categorySlug, discount, getProducts, productCover, productImages, productSlug } from "../../lib/products";
 import { site } from "../../site.config";
-export function getStaticPaths() { return products.map((product) => ({ params: { slug: productSlug(product) }, props: { product } })); }
+export async function getStaticPaths() {
+  const all = await getProducts();
+  return all.map((product) => ({ params: { slug: productSlug(product) }, props: { product } }));
+}
 const { product } = Astro.props;
+const products = await getProducts();
 const gallery = productImages(product);
 const related = products.filter((item) => item.id !== product.id && categorySlug(item) === categorySlug(product)).slice(0, 4);
 const percentDiscount = discount(product);

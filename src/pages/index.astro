@@ -4,10 +4,12 @@ import Header from "../components/Header.astro";
 import Hero from "../components/Hero.astro";
 import ProductGrid from "../components/ProductGrid.astro";
 import FloatingWhatsApp from "../components/FloatingWhatsApp.astro";
-import { categories, productCover, products } from "../lib/products";
+import { getCategories, getProducts, productCover } from "../lib/products";
 import { site } from "../site.config";
 
 const title = `${site.name} — Catálogo`;
+const products = await getProducts();
+const categories = getCategories(products);
 const destaques = products.filter((product) => product.destaque);
 const kits = products.filter((product) => product.categoria === "kit");
 const ogImage = products[0] ? productCover(products[0]) : undefined;
